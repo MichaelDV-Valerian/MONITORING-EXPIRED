@@ -8,6 +8,8 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- SheetJS untuk Export Excel (.xlsx) Multi-Sheet -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <!-- Chart.js untuk 1 Grafik Dinamis per Barang -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
@@ -29,7 +31,7 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <!-- Export Excel (.xlsx) Laporan Tabel -->
+        <!-- Export Excel (.xlsx) Laporan Lengkap -->
         <button onclick="exportToExcel()" title="Export Laporan ke Excel (.xlsx)" class="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition">
           <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-600"></i>
           <span class="hidden sm:inline">Export Excel</span>
@@ -53,9 +55,26 @@
         </button>
       </div>
     </div>
+
+    <!-- Tab Navigation Bar -->
+    <div class="bg-slate-50/80 border-t border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1">
+        <button id="tabBtnOperasional" onclick="switchTab('operasional')" class="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 transition">
+          <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+          <span>Operasional &amp; FEFO</span>
+        </button>
+        <button id="tabBtnPergerakan" onclick="switchTab('pergerakan')" class="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition">
+          <i data-lucide="activity" class="w-4 h-4"></i>
+          <span>Pergerakan &amp; Kartu Stok</span>
+        </button>
+      </div>
+    </div>
   </nav>
 
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+  <!-- ========================================================= -->
+  <!-- VIEW 1: OPERASIONAL & FEFO (HALAMAN UTAMA)                -->
+  <!-- ========================================================= -->
+  <main id="viewOperasional" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -248,7 +267,7 @@
     <!-- Log Pengeluaran -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div class="p-4 border-b border-slate-200 flex items-center justify-between">
-        <h3 class="font-semibold text-sm text-slate-800">Riwayat Pengeluaran &amp; Koreksi Stok</h3>
+        <h3 class="font-semibold text-sm text-slate-800">Riwayat Pengeluaran &amp; Koreksi Stok Terbaru</h3>
         <button onclick="clearAllData()" class="text-xs text-rose-600 hover:underline">Reset Semua Data</button>
       </div>
       <div id="logContainer" class="p-4 text-xs text-slate-600 space-y-2 max-h-48 overflow-y-auto">
@@ -257,6 +276,175 @@
     </div>
 
   </main>
+
+  <!-- ========================================================= -->
+  <!-- VIEW 2: PERGERAKAN BARANG & KARTU STOK (TAB BARU)         -->
+  <!-- ========================================================= -->
+  <section id="viewPergerakan" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Auto-Ranking Top Highlight Cards (Tanpa Tabel 50 Barang) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Card 1: Top Fast Moving -->
+      <div class="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-emerald-700 uppercase tracking-wide flex items-center gap-1.5">
+            <i data-lucide="flame" class="w-4 h-4 text-emerald-600"></i>
+            Top Fast Moving (Paling Laris)
+          </span>
+          <span class="text-[11px] text-slate-400">30 Hr Terakhir</span>
+        </div>
+        <div id="rankFastList" class="space-y-1.5 text-xs">
+          <p class="text-slate-400 italic">Belum ada data pengeluaran.</p>
+        </div>
+      </div>
+
+      <!-- Card 2: Slow Moving -->
+      <div class="bg-white p-4 rounded-xl border border-amber-200 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-amber-700 uppercase tracking-wide flex items-center gap-1.5">
+            <i data-lucide="clock" class="w-4 h-4 text-amber-600"></i>
+            Slow Moving (Perputaran Lambat)
+          </span>
+          <span class="text-[11px] text-slate-400">Stok Mengendap</span>
+        </div>
+        <div id="rankSlowList" class="space-y-1.5 text-xs">
+          <p class="text-slate-400 italic">Belum ada data stok mengendap.</p>
+        </div>
+      </div>
+
+      <!-- Card 3: High Waste / Expired -->
+      <div class="bg-white p-4 rounded-xl border border-rose-200 shadow-sm">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-rose-700 uppercase tracking-wide flex items-center gap-1.5">
+            <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600"></i>
+            Perhatian Expired (High Risk)
+          </span>
+          <span class="text-[11px] text-slate-400">Stok Lewat Batas</span>
+        </div>
+        <div id="rankWasteList" class="space-y-1.5 text-xs">
+          <p class="text-slate-400 italic">Tidak ada stok expired aktif.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search Bar Khusus Kartu Stok & Pergerakan Barang -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div class="flex-1 relative">
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Cari Barang untuk Melihat Pergerakan Keluar / Masuk</label>
+          <div class="relative">
+            <input type="text" id="movSearchInput" autocomplete="off" placeholder="Ketik nama barang / menu..." 
+              onfocus="openSearchDropdown('mov')" oninput="filterSearchDropdown('mov')"
+              class="w-full rounded-xl border border-slate-300 pl-3.5 pr-9 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white" />
+            <button type="button" onclick="clearSearchSelection('mov')" id="movClearBtn" class="hidden absolute right-3 top-3 text-slate-400 hover:text-slate-600">
+              <i data-lucide="x-circle" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <input type="hidden" id="movSelectId" />
+          <div id="movDropdownList" class="hidden absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-slate-100"></div>
+        </div>
+
+        <div class="w-full md:w-48">
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Rentang Waktu</label>
+          <select id="movPeriodFilter" onchange="renderMovementDetail()" class="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option value="7">7 Hari Terakhir</option>
+            <option value="14">14 Hari Terakhir</option>
+            <option value="30" selected>30 Hari Terakhir</option>
+            <option value="ALL">Semua Waktu</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State Sebelum Barang Dipilih -->
+    <div id="movEmptyPlaceholder" class="bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center space-y-2">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 mb-1">
+        <i data-lucide="search" class="w-6 h-6"></i>
+      </div>
+      <h3 class="font-semibold text-slate-800">Pilih Barang Terlebih Dahulu</h3>
+      <p class="text-xs text-slate-500 max-w-md mx-auto">Ketik nama barang pada kolom pencarian di atas untuk melihat status kecepatan perputaran stok, grafik tren keluar/masuk, dan kartu mutasi detailnya.</p>
+    </div>
+
+    <!-- Detail Pergerakan Barang Terpilih -->
+    <div id="movDetailContainer" class="hidden space-y-6">
+      
+      <!-- Header Info Barang & Velocity Badge -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <div class="flex flex-wrap items-center gap-2.5">
+            <h2 id="movItemName" class="text-lg font-bold text-slate-900">-</h2>
+            <span id="movVelocityBadge" class="px-2.5 py-0.5 rounded-full text-xs font-bold">-</span>
+          </div>
+          <p id="movItemMeta" class="text-xs text-slate-500 mt-1">-</p>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          <div class="bg-emerald-50/70 border border-emerald-200 rounded-lg px-3 py-2">
+            <p class="text-[11px] font-medium text-emerald-700">Total Masuk</p>
+            <p id="movStatIn" class="text-base font-bold text-emerald-800">0</p>
+          </div>
+          <div class="bg-rose-50/70 border border-rose-200 rounded-lg px-3 py-2">
+            <p class="text-[11px] font-medium text-rose-700">Total Keluar</p>
+            <p id="movStatOut" class="text-base font-bold text-rose-800">0</p>
+          </div>
+          <div class="bg-indigo-50/70 border border-indigo-200 rounded-lg px-3 py-2">
+            <p class="text-[11px] font-medium text-indigo-700">Rasio Keluar</p>
+            <p id="movStatRatio" class="text-base font-bold text-indigo-800">0%</p>
+          </div>
+          <div class="bg-slate-100 border border-slate-200 rounded-lg px-3 py-2">
+            <p class="text-[11px] font-medium text-slate-600">Sisa Stok Aktif</p>
+            <p id="movStatCurrent" class="text-base font-bold text-slate-900">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1 Grafik Dinamis: Tren Masuk vs Keluar -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="font-semibold text-sm text-slate-900">Grafik Pergerakan Masuk (Produksi) vs Keluar</h3>
+            <p class="text-xs text-slate-500">Visualisasi harian khusus untuk barang yang sedang dipilih</p>
+          </div>
+        </div>
+        <div class="h-64 w-full">
+          <canvas id="movementChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Tabel Kartu Stok (Riwayat Mutasi Detail Barang) -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <h3 class="font-semibold text-sm text-slate-900">Kartu Stok &amp; Riwayat Mutasi Barang</h3>
+            <p class="text-xs text-slate-500">Kronologi keluar/masuk dan koreksi untuk barang ini</p>
+          </div>
+          <button onclick="exportMovementExcel()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition">
+            <i data-lucide="sheet" class="w-3.5 h-3.5"></i>
+            <span>Export Kartu Stok</span>
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                <th class="py-3 px-4">Waktu Transaksi</th>
+                <th class="py-3 px-4">Jenis Pergerakan</th>
+                <th class="py-3 px-4">ID Batch</th>
+                <th class="py-3 px-4">Masuk (+)</th>
+                <th class="py-3 px-4">Keluar (-)</th>
+                <th class="py-3 px-4">Keterangan</th>
+              </tr>
+            </thead>
+            <tbody id="movTableBody" class="divide-y divide-slate-100 text-sm">
+              <!-- Mutasi rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </section>
 
   <!-- Modal Master Produk (Add, Edit, Delete, Custom Shelf Life) -->
   <div id="masterModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
@@ -378,27 +566,57 @@
   </div>
 
   <script>
-    // State Management dengan LocalStorage
+    // State Management dengan LocalStorage (Tetap kompatibel dengan data sebelumnya)
     const STORAGE_KEYS = {
       MASTER: 'tomeet_master_v2',
       BATCHES: 'tomeet_batches_v2',
-      LOGS: 'tomeet_logs_v2'
+      LOGS: 'tomeet_logs_v2',
+      MOVEMENTS: 'tomeet_movements_v1'
     };
 
-    // Migrasi otomatis jika user punya data dari versi v1
-    let masterProducts = JSON.parse(localStorage.getItem(STORAGE_KEYS.MASTER)) || JSON.parse(localStorage.getItem('tomeet_master_v1')) || [];
-    let batches = JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCHES)) || JSON.parse(localStorage.getItem('tomeet_batches_v1')) || [];
-    let logs = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOGS)) || JSON.parse(localStorage.getItem('tomeet_logs_v1')) || [];
+    let masterProducts = JSON.parse(localStorage.getItem(STORAGE_KEYS.MASTER)) || [];
+    let batches = JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCHES)) || [];
+    let logs = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOGS)) || [];
+    let movements = JSON.parse(localStorage.getItem(STORAGE_KEYS.MOVEMENTS)) || [];
 
-    // Pastikan setiap master punya shelfLifeDays (default 7)
     masterProducts = masterProducts.map(p => ({ ...p, shelfLifeDays: p.shelfLifeDays || 7 }));
 
+    // Migrasi otomatis: Jika sudah ada batch lama tapi movements masih kosong, bangun riwayat masuk awal dari batch yang ada
+    if (movements.length === 0 && batches.length > 0) {
+      batches.forEach(b => {
+        movements.push({
+          id: 'MOV-' + Math.floor(10000 + Math.random() * 90000),
+          productId: b.productId,
+          batchId: b.batchId,
+          type: 'IN',
+          qty: b.qtyAwal,
+          time: b.prodTime,
+          note: 'Hasil produksi masuk'
+        });
+      });
+      localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify(movements));
+    }
+
     let pendingDeduction = null;
+    let movementChartInstance = null;
 
     function saveData() {
       localStorage.setItem(STORAGE_KEYS.MASTER, JSON.stringify(masterProducts));
       localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(batches));
       localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(logs));
+      localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify(movements));
+    }
+
+    function recordMovement({ productId, batchId, type, qty, time, note }) {
+      movements.unshift({
+        id: 'MOV-' + Date.now().toString().slice(-5) + Math.floor(Math.random() * 90 + 10),
+        productId,
+        batchId,
+        type, // 'IN', 'OUT', 'ADJUST'
+        qty,
+        time: time || new Date().toISOString(),
+        note
+      });
     }
 
     // Format Tanggal & Waktu
@@ -421,7 +639,6 @@
       return d.toISOString();
     }
 
-    // Toast Alert
     function showToast(message, type = 'success') {
       const toast = document.getElementById('toast');
       const content = document.getElementById('toastContent');
@@ -439,17 +656,39 @@
     }
 
     // ==========================================
-    // EXPORT EXCEL (.XLSX) MULTI-SHEET & SESUAI TABEL
+    // NAVIGASI TAB (OPERASIONAL VS PERGERAKAN)
+    // ==========================================
+    function switchTab(tabName) {
+      const viewOp = document.getElementById('viewOperasional');
+      const viewMov = document.getElementById('viewPergerakan');
+      const btnOp = document.getElementById('tabBtnOperasional');
+      const btnMov = document.getElementById('tabBtnPergerakan');
+
+      if (tabName === 'operasional') {
+        viewOp.classList.remove('hidden');
+        viewMov.classList.add('hidden');
+        btnOp.className = 'inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 transition';
+        btnMov.className = 'inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition';
+      } else {
+        viewOp.classList.add('hidden');
+        viewMov.classList.remove('hidden');
+        btnMov.className = 'inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 transition';
+        btnOp.className = 'inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition';
+        renderAutoRankings();
+        renderMovementDetail();
+      }
+      lucide.createIcons();
+    }
+
+    // ==========================================
+    // EXPORT EXCEL (.XLSX) & BACKUP JSON
     // ==========================================
     function getFilteredSortedBatches(onlyCurrentView = false) {
       const productMap = {};
       masterProducts.forEach(p => { productMap[p.id] = p; });
 
       const sorted = [...batches].sort((a, b) => new Date(a.expTime) - new Date(b.expTime));
-
-      if (!onlyCurrentView) {
-        return { list: sorted, productMap };
-      }
+      if (!onlyCurrentView) return { list: sorted, productMap };
 
       const search = document.getElementById('searchInput').value.toLowerCase();
       const filter = document.getElementById('statusFilter').value;
@@ -457,10 +696,8 @@
       const filtered = sorted.filter(b => {
         const prod = productMap[b.productId] || { nama: 'Unknown', kategori: '-' };
         const st = getBatchStatus(b);
-
         const matchSearch = prod.nama.toLowerCase().includes(search) || prod.kategori.toLowerCase().includes(search) || b.batchId.toLowerCase().includes(search);
         if (!matchSearch) return false;
-
         if (filter === 'ACTIVE') return b.qtySisa > 0;
         if (filter === 'ALL') return true;
         return st.code === filter;
@@ -471,18 +708,16 @@
 
     function exportToExcel(onlyCurrentView = false) {
       if (typeof XLSX === 'undefined') {
-        showToast('Library Excel gagal dimuat. Pastikan koneksi internet aktif.', 'error');
+        showToast('Library Excel gagal dimuat. Periksa koneksi internet.', 'error');
         return;
       }
 
       const { list, productMap } = getFilteredSortedBatches(onlyCurrentView);
-
       if (list.length === 0 && masterProducts.length === 0) {
         showToast('Belum ada data untuk di-export ke Excel.', 'warning');
         return;
       }
 
-      // Sheet 1: Data Batch Produksi (Sesuai Kolom Tabel)
       const batchRows = list.map((b, idx) => {
         const prod = productMap[b.productId] || { nama: 'Unknown', kategori: '-', satuan: '' };
         const st = getBatchStatus(b);
@@ -510,7 +745,6 @@
       ];
       XLSX.utils.book_append_sheet(wb, wsBatch, 'Monitoring Batch');
 
-      // Jika Export Lengkap (bukan hanya filter tabel), sertakan Sheet Master Produk & Riwayat
       if (!onlyCurrentView) {
         const masterRows = masterProducts.map((p, idx) => ({
           'No': idx + 1,
@@ -529,15 +763,23 @@
         ];
         XLSX.utils.book_append_sheet(wb, wsMaster, 'Master Produk');
 
-        const logRows = logs.map((l, idx) => ({
-          'No': idx + 1,
-          'Waktu Aktivitas': formatDateTime(l.time),
-          'Keterangan': l.text.replace(/<[^>]*>/g, '').replace(/&rarr;/g, '->')
-        }));
-        if (logRows.length > 0) {
-          const wsLogs = XLSX.utils.json_to_sheet(logRows);
-          wsLogs['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 65 }];
-          XLSX.utils.book_append_sheet(wb, wsLogs, 'Riwayat Aktivitas');
+        const movRows = movements.map((m, idx) => {
+          const prod = productMap[m.productId] || { nama: 'Unknown', satuan: '' };
+          return {
+            'No': idx + 1,
+            'Waktu': formatDateTime(m.time),
+            'Nama Barang': prod.nama,
+            'Jenis': m.type === 'IN' ? 'Masuk (Produksi)' : (m.type === 'OUT' ? 'Keluar (FEFO)' : 'Koreksi'),
+            'ID Batch': m.batchId,
+            'Qty': m.qty,
+            'Satuan': prod.satuan,
+            'Keterangan': m.note
+          };
+        });
+        if (movRows.length > 0) {
+          const wsMov = XLSX.utils.json_to_sheet(movRows);
+          wsMov['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 26 }, { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 40 }];
+          XLSX.utils.book_append_sheet(wb, wsMov, 'Kartu Stok Mutasi');
         }
       }
 
@@ -547,23 +789,46 @@
       showToast(`File Excel (.xlsx) ${onlyCurrentView ? 'sesuai filter tabel' : 'laporan lengkap'} berhasil diunduh.`);
     }
 
-    // ==========================================
-    // EXPORT & IMPORT BACKUP JSON
-    // ==========================================
+    function exportMovementExcel() {
+      const productId = document.getElementById('movSelectId').value;
+      if (!productId || typeof XLSX === 'undefined') return;
+      const prod = masterProducts.find(p => p.id === productId);
+      const filteredMovs = getFilteredMovementsForProduct(productId);
+
+      const rows = filteredMovs.map((m, idx) => ({
+        'No': idx + 1,
+        'Waktu Transaksi': formatDateTime(m.time),
+        'Jenis Pergerakan': m.type === 'IN' ? 'Masuk (Produksi)' : (m.type === 'OUT' ? 'Keluar (FEFO)' : 'Koreksi'),
+        'ID Batch': m.batchId,
+        'Masuk (+)': m.type === 'IN' ? m.qty : 0,
+        'Keluar (-)': m.type === 'OUT' ? m.qty : 0,
+        'Satuan': prod ? prod.satuan : '',
+        'Keterangan': m.note
+      }));
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{ Info: 'Tidak ada mutasi' }]);
+      ws['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 40 }];
+      XLSX.utils.book_append_sheet(wb, ws, 'Kartu Stok');
+      const safeName = (prod ? prod.nama : 'produk').replace(/[^a-zA-Z0-9]/g, '-');
+      XLSX.writeFile(wb, `Kartu-Stok-${safeName}-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      showToast('Kartu stok barang berhasil di-export ke Excel.');
+    }
+
     function exportBackupJSON() {
       const backupPayload = {
         appName: 'TO MEET MONITORING EXPIRED',
         exportedAt: new Date().toISOString(),
         masterProducts,
         batches,
-        logs
+        logs,
+        movements
       };
       const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const dateStr = new Date().toISOString().slice(0, 10);
       a.href = url;
-      a.download = `backup-tomeet-expired-${dateStr}.json`;
+      a.download = `backup-tomeet-expired-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
       showToast('File backup JSON berhasil diunduh.');
@@ -587,9 +852,11 @@
           masterProducts = parsed.masterProducts.map(p => ({ ...p, shelfLifeDays: p.shelfLifeDays || 7 }));
           batches = parsed.batches;
           logs = Array.isArray(parsed.logs) ? parsed.logs : [];
+          movements = Array.isArray(parsed.movements) ? parsed.movements : [];
           saveData();
           clearSearchSelection('prod');
           clearSearchSelection('out');
+          clearSearchSelection('mov');
           renderAll();
           showToast('Data berhasil dipulihkan dari file backup!');
         } catch (err) {
@@ -643,17 +910,19 @@
       if (!prod) return;
       const relatedBatches = batches.filter(b => b.productId === id);
       const warnMsg = relatedBatches.length > 0
-        ? `Produk "${prod.nama}" memiliki ${relatedBatches.length} riwayat batch. Hapus produk beserta seluruh batch-nya?`
+        ? `Produk "${prod.nama}" memiliki ${relatedBatches.length} riwayat batch. Hapus produk beserta seluruh data terkait?`
         : `Hapus produk "${prod.nama}" dari Master Produk?`;
 
       if (!confirm(warnMsg)) return;
 
       masterProducts = masterProducts.filter(p => p.id !== id);
       batches = batches.filter(b => b.productId !== id);
+      movements = movements.filter(m => m.productId !== id);
       saveData();
 
       if (document.getElementById('prodSelectId').value === id) clearSearchSelection('prod');
       if (document.getElementById('outSelectId').value === id) clearSearchSelection('out');
+      if (document.getElementById('movSelectId').value === id) clearSearchSelection('mov');
 
       renderMasterList();
       renderAll();
@@ -731,7 +1000,7 @@
     }
 
     // ==========================================
-    // SEARCHABLE DROPDOWN (INPUT PRODUKSI & KELUAR)
+    // SEARCHABLE DROPDOWN (PROD, OUT, & MOV)
     // ==========================================
     function openSearchDropdown(type) {
       filterSearchDropdown(type);
@@ -748,6 +1017,7 @@
       hiddenIdEl.value = '';
       if (type === 'prod') updatePreviewExpiry();
       if (type === 'out') updateAvailableHint();
+      if (type === 'mov') renderMovementDetail();
 
       clearBtn.classList.toggle('hidden', inputEl.value.length === 0);
 
@@ -759,7 +1029,9 @@
         listEl.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center">Produk tidak ditemukan. Tambahkan di Master Produk.</div>`;
       } else {
         listEl.innerHTML = matches.map(p => {
-          const stokInfo = type === 'out' ? `<span class="text-xs font-semibold text-indigo-600">Stok: ${getAvailableStock(p.id)} ${p.satuan}</span>` : `<span class="text-[11px] text-slate-400">Exp +${p.shelfLifeDays || 7} hr</span>`;
+          const stokInfo = (type === 'out' || type === 'mov')
+            ? `<span class="text-xs font-semibold text-indigo-600">Stok: ${getAvailableStock(p.id)} ${p.satuan}</span>`
+            : `<span class="text-[11px] text-slate-400">Exp +${p.shelfLifeDays || 7} hr</span>`;
           return `
             <button type="button" onclick="selectSearchProduct('${type}', '${p.id}')" class="w-full text-left px-3.5 py-2.5 hover:bg-indigo-50 transition flex items-center justify-between">
               <div>
@@ -785,6 +1057,7 @@
 
       if (type === 'prod') updatePreviewExpiry();
       if (type === 'out') updateAvailableHint();
+      if (type === 'mov') renderMovementDetail();
     }
 
     function clearSearchSelection(type) {
@@ -794,10 +1067,11 @@
       document.getElementById(`${type}ClearBtn`).classList.add('hidden');
       if (type === 'prod') updatePreviewExpiry();
       if (type === 'out') updateAvailableHint();
+      if (type === 'mov') renderMovementDetail();
     }
 
     document.addEventListener('click', function(e) {
-      ['prod', 'out'].forEach(type => {
+      ['prod', 'out', 'mov'].forEach(type => {
         const input = document.getElementById(`${type}SearchInput`);
         const list = document.getElementById(`${type}DropdownList`);
         if (input && list && !input.contains(e.target) && !list.contains(e.target)) {
@@ -850,8 +1124,16 @@
       };
 
       batches.push(newBatch);
-      saveData();
+      recordMovement({
+        productId,
+        batchId: newBatch.batchId,
+        type: 'IN',
+        qty,
+        time: prodIso,
+        note: `Input hasil produksi (Exp: ${formatDateTime(expIso)})`
+      });
 
+      saveData();
       document.getElementById('prodQty').value = '';
       setDefaultProdTime();
       renderAll();
@@ -894,13 +1176,15 @@
       const idx = batches.findIndex(b => b.batchId === batchId);
       if (idx === -1) return;
 
-      const prod = masterProducts.find(p => p.id === batches[idx].productId);
+      const oldBatch = batches[idx];
+      const prod = masterProducts.find(p => p.id === oldBatch.productId);
       const shelfLife = prod ? (prod.shelfLifeDays || 7) : 7;
       const newProdIso = new Date(prodTimeVal).toISOString();
       const newExpIso = calculateExpiry(newProdIso, shelfLife);
+      const diffSisa = qtySisa - oldBatch.qtySisa;
 
       batches[idx] = {
-        ...batches[idx],
+        ...oldBatch,
         qtyAwal,
         qtySisa,
         prodTime: newProdIso,
@@ -910,6 +1194,15 @@
       logs.unshift({
         time: new Date().toISOString(),
         text: `Koreksi manual batch <strong>${batchId}</strong> (${prod ? prod.nama : ''}) &rarr; Sisa stok disesuaikan menjadi <strong>${qtySisa}/${qtyAwal}</strong>`
+      });
+
+      recordMovement({
+        productId: oldBatch.productId,
+        batchId,
+        type: 'ADJUST',
+        qty: Math.abs(diffSisa),
+        time: new Date().toISOString(),
+        note: `Koreksi stok batch (${oldBatch.qtySisa} -> ${qtySisa})`
       });
 
       saveData();
@@ -929,6 +1222,15 @@
       logs.unshift({
         time: new Date().toISOString(),
         text: `Hapus batch <strong>${batchId}</strong> (${prod.nama}, sisa ${batch.qtySisa})`
+      });
+
+      recordMovement({
+        productId: batch.productId,
+        batchId,
+        type: 'ADJUST',
+        qty: batch.qtySisa,
+        time: new Date().toISOString(),
+        note: `Penghapusan batch (sisa ${batch.qtySisa} dihapus)`
       });
 
       saveData();
@@ -1045,18 +1347,29 @@
       const product = masterProducts.find(p => p.id === productId);
       let breakdown = [];
       let remaining = qtyToDeduct;
+      const nowIso = new Date().toISOString();
 
       for (let batch of eligibleBatches) {
         if (remaining <= 0) break;
         const take = Math.min(batch.qtySisa, remaining);
+        const isBatchExpired = new Date(batch.expTime) <= new Date();
         batch.qtySisa -= take;
         remaining -= take;
         breakdown.push(`${batch.batchId} (-${take})`);
+
+        recordMovement({
+          productId,
+          batchId: batch.batchId,
+          type: 'OUT',
+          qty: take,
+          time: nowIso,
+          note: isBatchExpired ? 'Pengeluaran FEFO (Batch Expired / Waste)' : 'Pengeluaran FEFO normal'
+        });
       }
 
       const tagExp = hadExpiredWarning ? ` <span class="text-rose-600 font-semibold">[Termasuk Batch Expired]</span>` : '';
       logs.unshift({
-        time: new Date().toISOString(),
+        time: nowIso,
         text: `Keluar <strong>${qtyToDeduct} ${product.satuan} ${product.nama}</strong>${tagExp} &rarr; Dipotong dari: ${breakdown.join(', ')}`
       });
 
@@ -1067,7 +1380,231 @@
     }
 
     // ==========================================
-    // EVALUASI STATUS REAL-TIME & RENDER TABEL
+    // TAB 2: AUTO-RANKING RINGKAS & PERGERAKAN BARANG
+    // ==========================================
+    function renderAutoRankings() {
+      const fastEl = document.getElementById('rankFastList');
+      const slowEl = document.getElementById('rankSlowList');
+      const wasteEl = document.getElementById('rankWasteList');
+
+      if (masterProducts.length === 0) {
+        fastEl.innerHTML = `<p class="text-slate-400 italic">Belum ada produk terdaftar.</p>`;
+        slowEl.innerHTML = `<p class="text-slate-400 italic">Belum ada produk terdaftar.</p>`;
+        wasteEl.innerHTML = `<p class="text-slate-400 italic">Belum ada produk terdaftar.</p>`;
+        return;
+      }
+
+      const cutoff30 = Date.now() - 30 * 24 * 60 * 60 * 1000;
+      const now = new Date();
+
+      const metrics = masterProducts.map(p => {
+        const recentMovs = movements.filter(m => m.productId === p.id && new Date(m.time).getTime() >= cutoff30);
+        const totalIn = recentMovs.filter(m => m.type === 'IN').reduce((s, m) => s + m.qty, 0);
+        const totalOut = recentMovs.filter(m => m.type === 'OUT').reduce((s, m) => s + m.qty, 0);
+        const currentStock = getAvailableStock(p.id, false);
+        const expiredStock = batches
+          .filter(b => b.productId === p.id && b.qtySisa > 0 && new Date(b.expTime) <= now)
+          .reduce((s, b) => s + b.qtySisa, 0);
+
+        return { product: p, totalIn, totalOut, currentStock, expiredStock };
+      });
+
+      // Top 3 Fast Moving (berdasarkan totalOut > 0)
+      const topFast = [...metrics]
+        .filter(m => m.totalOut > 0)
+        .sort((a, b) => b.totalOut - a.totalOut)
+        .slice(0, 3);
+
+      fastEl.innerHTML = topFast.length > 0
+        ? topFast.map((m, i) => `
+            <button onclick="selectSearchProduct('mov', '${m.product.id}')" class="w-full flex items-center justify-between p-1.5 rounded-lg hover:bg-emerald-50 text-left transition">
+              <span class="font-medium text-slate-800 truncate">${i + 1}. ${m.product.nama}</span>
+              <span class="font-bold text-emerald-700 shrink-0 ml-2">${m.totalOut} ${m.product.satuan} keluar</span>
+            </button>
+          `).join('')
+        : `<p class="text-slate-400 italic">Belum ada barang keluar 30 hari terakhir.</p>`;
+
+      // Top 3 Slow Moving (punya stok aktif tapi pengeluaran paling sedikit / 0)
+      const topSlow = [...metrics]
+        .filter(m => m.currentStock > 0)
+        .sort((a, b) => a.totalOut - b.totalOut || b.currentStock - a.currentStock)
+        .slice(0, 3);
+
+      slowEl.innerHTML = topSlow.length > 0
+        ? topSlow.map((m, i) => `
+            <button onclick="selectSearchProduct('mov', '${m.product.id}')" class="w-full flex items-center justify-between p-1.5 rounded-lg hover:bg-amber-50 text-left transition">
+              <span class="font-medium text-slate-800 truncate">${i + 1}. ${m.product.nama}</span>
+              <span class="font-semibold text-amber-700 shrink-0 ml-2">Sisa ${m.currentStock} (${m.totalOut} keluar)</span>
+            </button>
+          `).join('')
+        : `<p class="text-slate-400 italic">Belum ada stok mengendap.</p>`;
+
+      // Top 3 Expired Risk (punya stok expired aktif)
+      const topWaste = [...metrics]
+        .filter(m => m.expiredStock > 0)
+        .sort((a, b) => b.expiredStock - a.expiredStock)
+        .slice(0, 3);
+
+      wasteEl.innerHTML = topWaste.length > 0
+        ? topWaste.map((m, i) => `
+            <button onclick="selectSearchProduct('mov', '${m.product.id}')" class="w-full flex items-center justify-between p-1.5 rounded-lg hover:bg-rose-50 text-left transition">
+              <span class="font-medium text-slate-800 truncate">${i + 1}. ${m.product.nama}</span>
+              <span class="font-bold text-rose-700 shrink-0 ml-2">${m.expiredStock} ${m.product.satuan} Exp</span>
+            </button>
+          `).join('')
+        : `<p class="text-emerald-600 font-medium">Aman! Tidak ada stok expired aktif.</p>`;
+    }
+
+    function getFilteredMovementsForProduct(productId) {
+      const periodVal = document.getElementById('movPeriodFilter').value;
+      const cutoff = periodVal === 'ALL' ? 0 : Date.now() - parseInt(periodVal, 10) * 24 * 60 * 60 * 1000;
+
+      return movements
+        .filter(m => m.productId === productId && new Date(m.time).getTime() >= cutoff)
+        .sort((a, b) => new Date(b.time) - new Date(a.time));
+    }
+
+    function renderMovementDetail() {
+      const productId = document.getElementById('movSelectId').value;
+      const placeholder = document.getElementById('movEmptyPlaceholder');
+      const container = document.getElementById('movDetailContainer');
+
+      if (!productId) {
+        placeholder.classList.remove('hidden');
+        container.classList.add('hidden');
+        return;
+      }
+
+      const prod = masterProducts.find(p => p.id === productId);
+      if (!prod) return;
+
+      placeholder.classList.add('hidden');
+      container.classList.remove('hidden');
+
+      const filteredMovs = getFilteredMovementsForProduct(productId);
+      const totalIn = filteredMovs.filter(m => m.type === 'IN').reduce((s, m) => s + m.qty, 0);
+      const totalOut = filteredMovs.filter(m => m.type === 'OUT').reduce((s, m) => s + m.qty, 0);
+      const currentStock = getAvailableStock(productId, false);
+      const validStock = getAvailableStock(productId, true);
+      const expiredStock = currentStock - validStock;
+
+      // Hitung Rasio Keluar & Klasifikasi Kecepatan
+      const denominator = totalIn > 0 ? totalIn : (totalOut + currentStock);
+      const ratio = denominator > 0 ? Math.round((totalOut / denominator) * 100) : 0;
+
+      const badgeEl = document.getElementById('movVelocityBadge');
+      if (expiredStock > 0 && expiredStock >= validStock) {
+        badgeEl.textContent = 'HIGH WASTE / RISIKO EXPIRED';
+        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700 border border-rose-200';
+      } else if (totalOut > 0 && ratio >= 70) {
+        badgeEl.textContent = 'FAST MOVING';
+        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200';
+      } else if (totalOut > 0 && ratio >= 35) {
+        badgeEl.textContent = 'MEDIUM MOVING';
+        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-100 text-indigo-700 border border-indigo-200';
+      } else {
+        badgeEl.textContent = 'SLOW MOVING';
+        badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200';
+      }
+
+      document.getElementById('movItemName').textContent = prod.nama;
+      document.getElementById('movItemMeta').textContent = `Kategori: ${prod.kategori} • Satuan: ${prod.satuan} • Masa Simpan: ${prod.shelfLifeDays || 7} Hari`;
+      document.getElementById('movStatIn').textContent = `${totalIn} ${prod.satuan}`;
+      document.getElementById('movStatOut').textContent = `${totalOut} ${prod.satuan}`;
+      document.getElementById('movStatRatio').textContent = `${ratio}%`;
+      document.getElementById('movStatCurrent').textContent = `${currentStock} ${prod.satuan}`;
+
+      // Render Tabel Kartu Stok
+      const tbody = document.getElementById('movTableBody');
+      if (filteredMovs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 text-sm">Belum ada riwayat pergerakan pada rentang waktu ini.</td></tr>`;
+      } else {
+        tbody.innerHTML = filteredMovs.map(m => {
+          let typeBadge = '';
+          let inCell = '-';
+          let outCell = '-';
+
+          if (m.type === 'IN') {
+            typeBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-100 text-emerald-700">Masuk Produksi</span>`;
+            inCell = `<span class="font-bold text-emerald-600">+${m.qty} ${prod.satuan}</span>`;
+          } else if (m.type === 'OUT') {
+            typeBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-100 text-rose-700">Keluar FEFO</span>`;
+            outCell = `<span class="font-bold text-rose-600">-${m.qty} ${prod.satuan}</span>`;
+          } else {
+            typeBadge = `<span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700">Koreksi</span>`;
+          }
+
+          return `
+            <tr class="hover:bg-slate-50/80">
+              <td class="py-3 px-4 text-xs text-slate-600 whitespace-nowrap">${formatDateTime(m.time)}</td>
+              <td class="py-3 px-4">${typeBadge}</td>
+              <td class="py-3 px-4 font-mono text-xs text-slate-600">${m.batchId}</td>
+              <td class="py-3 px-4 text-xs">${inCell}</td>
+              <td class="py-3 px-4 text-xs">${outCell}</td>
+              <td class="py-3 px-4 text-xs text-slate-600">${m.note}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      renderMovementChart(filteredMovs, prod.satuan);
+    }
+
+    function renderMovementChart(filteredMovs, satuan) {
+      const ctx = document.getElementById('movementChart');
+      if (!ctx || typeof Chart === 'undefined') return;
+
+      // Kelompokkan data per tanggal (YYYY-MM-DD)
+      const dailyMap = {};
+      [...filteredMovs].reverse().forEach(m => {
+        const dayKey = new Date(m.time).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+        if (!dailyMap[dayKey]) dailyMap[dayKey] = { inQty: 0, outQty: 0 };
+        if (m.type === 'IN') dailyMap[dayKey].inQty += m.qty;
+        if (m.type === 'OUT') dailyMap[dayKey].outQty += m.qty;
+      });
+
+      const labels = Object.keys(dailyMap);
+      const dataIn = labels.map(l => dailyMap[l].inQty);
+      const dataOut = labels.map(l => dailyMap[l].outQty);
+
+      if (movementChartInstance) {
+        movementChartInstance.destroy();
+      }
+
+      movementChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels.length > 0 ? labels : ['Belum ada data'],
+          datasets: [
+            {
+              label: `Masuk / Produksi (${satuan})`,
+              data: dataIn.length > 0 ? dataIn : [0],
+              backgroundColor: 'rgba(16, 185, 129, 0.8)',
+              borderRadius: 6
+            },
+            {
+              label: `Keluar / Terjual (${satuan})`,
+              data: dataOut.length > 0 ? dataOut : [0],
+              backgroundColor: 'rgba(244, 63, 94, 0.8)',
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top', labels: { font: { family: 'Inter', size: 12 } } }
+          },
+          scales: {
+            y: { beginAtZero: true, ticks: { precision: 0 } }
+          }
+        }
+      });
+    }
+
+    // ==========================================
+    // EVALUASI STATUS REAL-TIME & RENDER TABEL UTAMA
     // ==========================================
     function getBatchStatus(batch) {
       if (batch.qtySisa <= 0) {
@@ -1146,7 +1683,11 @@
         return `
           <tr class="hover:bg-slate-50/80 transition ${st.rowClass}">
             <td class="py-3 px-4 font-mono text-xs font-semibold text-slate-600">${b.batchId}</td>
-            <td class="py-3 px-4 font-medium text-slate-900">${prod.nama}</td>
+            <td class="py-3 px-4 font-medium text-slate-900">
+              <button onclick="jumpToMovement('${b.productId}')" title="Lihat Pergerakan Barang Ini" class="hover:text-indigo-600 hover:underline text-left">
+                ${prod.nama}
+              </button>
+            </td>
             <td class="py-3 px-4 text-slate-500 text-xs">${prod.kategori}</td>
             <td class="py-3 px-4">
               <span class="font-bold text-slate-900">${b.qtySisa}</span>
@@ -1174,6 +1715,11 @@
       lucide.createIcons();
     }
 
+    function jumpToMovement(productId) {
+      switchTab('pergerakan');
+      selectSearchProduct('mov', productId);
+    }
+
     function renderLogs() {
       const container = document.getElementById('logContainer');
       if (logs.length === 0) {
@@ -1198,6 +1744,8 @@
       updateAvailableHint();
       renderTable();
       renderLogs();
+      renderAutoRankings();
+      renderMovementDetail();
     }
 
     function clearAllData() {
@@ -1205,9 +1753,11 @@
       masterProducts = [];
       batches = [];
       logs = [];
+      movements = [];
       saveData();
       clearSearchSelection('prod');
       clearSearchSelection('out');
+      clearSearchSelection('mov');
       renderAll();
       showToast('Semua data telah direset.', 'warning');
     }
