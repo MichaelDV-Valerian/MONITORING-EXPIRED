@@ -6,6 +6,8 @@
   <title>TO MEET MONITORING EXPIRED</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- SheetJS untuk Export Excel (.xlsx) Multi-Sheet -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
@@ -27,14 +29,20 @@
       </div>
 
       <div class="flex items-center gap-2">
-        <!-- Backup / Restore Buttons -->
-        <button onclick="exportBackupJSON()" title="Export Backup JSON" class="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition">
+        <!-- Export Excel (.xlsx) Laporan Tabel -->
+        <button onclick="exportToExcel()" title="Export Laporan ke Excel (.xlsx)" class="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition">
+          <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-600"></i>
+          <span class="hidden sm:inline">Export Excel</span>
+        </button>
+
+        <!-- Backup / Restore Buttons (JSON) -->
+        <button onclick="exportBackupJSON()" title="Export Backup Data (.json)" class="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition">
           <i data-lucide="download" class="w-3.5 h-3.5 text-indigo-600"></i>
-          <span class="hidden md:inline">Export Backup</span>
+          <span class="hidden md:inline">Backup JSON</span>
         </button>
 
         <button onclick="document.getElementById('importFileInput').click()" title="Import Backup JSON" class="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg border border-slate-200 transition">
-          <i data-lucide="upload" class="w-3.5 h-3.5 text-emerald-600"></i>
+          <i data-lucide="upload" class="w-3.5 h-3.5 text-slate-600"></i>
           <span class="hidden md:inline">Import</span>
         </button>
         <input type="file" id="importFileInput" accept=".json" onchange="importBackupJSON(event)" class="hidden" />
@@ -207,6 +215,11 @@
             <option value="WARNING">Segera Exp (&le; 2 Hari)</option>
             <option value="EXPIRED">Expired</option>
           </select>
+
+          <button onclick="exportToExcel(true)" title="Export baris yang sedang tampil di tabel ini ke Excel" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition">
+            <i data-lucide="sheet" class="w-3.5 h-3.5"></i>
+            <span>Export Tabel Ini</span>
+          </button>
         </div>
       </div>
 
@@ -426,7 +439,116 @@
     }
 
     // ==========================================
-    // 1. EXPORT & IMPORT BACKUP JSON
+    // EXPORT EXCEL (.XLSX) MULTI-SHEET & SESUAI TABEL
+    // ==========================================
+    function getFilteredSortedBatches(onlyCurrentView = false) {
+      const productMap = {};
+      masterProducts.forEach(p => { productMap[p.id] = p; });
+
+      const sorted = [...batches].sort((a, b) => new Date(a.expTime) - new Date(b.expTime));
+
+      if (!onlyCurrentView) {
+        return { list: sorted, productMap };
+      }
+
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const filter = document.getElementById('statusFilter').value;
+
+      const filtered = sorted.filter(b => {
+        const prod = productMap[b.productId] || { nama: 'Unknown', kategori: '-' };
+        const st = getBatchStatus(b);
+
+        const matchSearch = prod.nama.toLowerCase().includes(search) || prod.kategori.toLowerCase().includes(search) || b.batchId.toLowerCase().includes(search);
+        if (!matchSearch) return false;
+
+        if (filter === 'ACTIVE') return b.qtySisa > 0;
+        if (filter === 'ALL') return true;
+        return st.code === filter;
+      });
+
+      return { list: filtered, productMap };
+    }
+
+    function exportToExcel(onlyCurrentView = false) {
+      if (typeof XLSX === 'undefined') {
+        showToast('Library Excel gagal dimuat. Pastikan koneksi internet aktif.', 'error');
+        return;
+      }
+
+      const { list, productMap } = getFilteredSortedBatches(onlyCurrentView);
+
+      if (list.length === 0 && masterProducts.length === 0) {
+        showToast('Belum ada data untuk di-export ke Excel.', 'warning');
+        return;
+      }
+
+      // Sheet 1: Data Batch Produksi (Sesuai Kolom Tabel)
+      const batchRows = list.map((b, idx) => {
+        const prod = productMap[b.productId] || { nama: 'Unknown', kategori: '-', satuan: '' };
+        const st = getBatchStatus(b);
+        return {
+          'No': idx + 1,
+          'ID Batch': b.batchId,
+          'Nama Barang': prod.nama,
+          'Kategori': prod.kategori,
+          'Qty Sisa': b.qtySisa,
+          'Qty Awal': b.qtyAwal,
+          'Satuan': prod.satuan,
+          'Waktu Produksi': formatDateTime(b.prodTime),
+          'Waktu Expired': formatDateTime(b.expTime),
+          'Sisa Waktu': st.timeText,
+          'Status': st.label
+        };
+      });
+
+      const wb = XLSX.utils.book_new();
+      const wsBatch = XLSX.utils.json_to_sheet(batchRows.length > 0 ? batchRows : [{ Info: 'Tidak ada data batch pada filter ini' }]);
+      wsBatch['!cols'] = [
+        { wch: 5 }, { wch: 12 }, { wch: 28 }, { wch: 16 },
+        { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 20 },
+        { wch: 20 }, { wch: 18 }, { wch: 14 }
+      ];
+      XLSX.utils.book_append_sheet(wb, wsBatch, 'Monitoring Batch');
+
+      // Jika Export Lengkap (bukan hanya filter tabel), sertakan Sheet Master Produk & Riwayat
+      if (!onlyCurrentView) {
+        const masterRows = masterProducts.map((p, idx) => ({
+          'No': idx + 1,
+          'ID Produk': p.id,
+          'Nama Barang': p.nama,
+          'Kategori': p.kategori,
+          'Satuan': p.satuan,
+          'Masa Simpan (Hari)': p.shelfLifeDays || 7,
+          'Total Stok Aktif': getAvailableStock(p.id, false),
+          'Stok Layak (Non-Exp)': getAvailableStock(p.id, true)
+        }));
+        const wsMaster = XLSX.utils.json_to_sheet(masterRows.length > 0 ? masterRows : [{ Info: 'Belum ada master produk' }]);
+        wsMaster['!cols'] = [
+          { wch: 5 }, { wch: 12 }, { wch: 28 }, { wch: 16 },
+          { wch: 10 }, { wch: 18 }, { wch: 16 }, { wch: 20 }
+        ];
+        XLSX.utils.book_append_sheet(wb, wsMaster, 'Master Produk');
+
+        const logRows = logs.map((l, idx) => ({
+          'No': idx + 1,
+          'Waktu Aktivitas': formatDateTime(l.time),
+          'Keterangan': l.text.replace(/<[^>]*>/g, '').replace(/&rarr;/g, '->')
+        }));
+        if (logRows.length > 0) {
+          const wsLogs = XLSX.utils.json_to_sheet(logRows);
+          wsLogs['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 65 }];
+          XLSX.utils.book_append_sheet(wb, wsLogs, 'Riwayat Aktivitas');
+        }
+      }
+
+      const dateStr = new Date().toISOString().slice(0, 10);
+      const suffix = onlyCurrentView ? 'tabel-filter' : 'lengkap';
+      XLSX.writeFile(wb, `TO-MEET-MONITORING-${suffix}-${dateStr}.xlsx`);
+      showToast(`File Excel (.xlsx) ${onlyCurrentView ? 'sesuai filter tabel' : 'laporan lengkap'} berhasil diunduh.`);
+    }
+
+    // ==========================================
+    // EXPORT & IMPORT BACKUP JSON
     // ==========================================
     function exportBackupJSON() {
       const backupPayload = {
@@ -479,7 +601,7 @@
     }
 
     // ==========================================
-    // 2. MASTER PRODUK (ADD, EDIT, DELETE, SHELF LIFE)
+    // MASTER PRODUK (ADD, EDIT, DELETE, SHELF LIFE)
     // ==========================================
     function openMasterModal() {
       document.getElementById('masterModal').classList.remove('hidden');
@@ -546,7 +668,6 @@
       const satuan = document.getElementById('mSatuan').value.trim();
       const shelfLifeDays = parseInt(document.getElementById('mShelfLife').value, 10) || 7;
 
-      // Cek duplikasi nama (kecuali dirinya sendiri saat edit)
       const duplicate = masterProducts.some(p => p.nama.toLowerCase() === nama.toLowerCase() && p.id !== editId);
       if (duplicate) {
         showToast(`Gagal: "${nama}" sudah terdaftar di Master Produk!`, 'error');
@@ -610,7 +731,7 @@
     }
 
     // ==========================================
-    // 3. SEARCHABLE DROPDOWN (INPUT PRODUKSI & KELUAR)
+    // SEARCHABLE DROPDOWN (INPUT PRODUKSI & KELUAR)
     // ==========================================
     function openSearchDropdown(type) {
       filterSearchDropdown(type);
@@ -624,7 +745,6 @@
       const clearBtn = document.getElementById(`${type}ClearBtn`);
       const keyword = inputEl.value.toLowerCase().trim();
 
-      // Reset selected ID jika user mengetik ulang
       hiddenIdEl.value = '';
       if (type === 'prod') updatePreviewExpiry();
       if (type === 'out') updateAvailableHint();
@@ -676,7 +796,6 @@
       if (type === 'out') updateAvailableHint();
     }
 
-    // Tutup dropdown saat klik di luar area
     document.addEventListener('click', function(e) {
       ['prod', 'out'].forEach(type => {
         const input = document.getElementById(`${type}SearchInput`);
@@ -688,7 +807,7 @@
     });
 
     // ==========================================
-    // 4. INPUT PRODUKSI & KOREKSI / HAPUS BATCH
+    // INPUT PRODUKSI & KOREKSI / HAPUS BATCH
     // ==========================================
     function updatePreviewExpiry() {
       const timeVal = document.getElementById('prodTime').value;
@@ -739,7 +858,6 @@
       showToast(`Batch ${newBatch.batchId} (${prod.nama}) berhasil ditambahkan (+${qty}).`);
     }
 
-    // Edit & Delete Batch
     function openEditBatchModal(batchId) {
       const batch = batches.find(b => b.batchId === batchId);
       if (!batch) return;
@@ -819,7 +937,7 @@
     }
 
     // ==========================================
-    // 5. PENGELUARAN BARANG FEFO + PERINGATAN EXPIRED
+    // PENGELUARAN BARANG FEFO + PERINGATAN EXPIRED
     // ==========================================
     function getAvailableStock(productId, excludeExpired = false) {
       const now = new Date();
@@ -865,7 +983,6 @@
       const product = masterProducts.find(p => p.id === productId);
       const now = new Date();
 
-      // Cek stok layak vs total stok
       const eligibleBatches = batches
         .filter(b => {
           if (b.productId !== productId || b.qtySisa <= 0) return false;
@@ -886,7 +1003,6 @@
         return;
       }
 
-      // Simulasi pemotongan untuk mendeteksi apakah ada batch EXPIRED yang ikut terpotong
       let remaining = qtyToDeduct;
       let expiredBatchesInvolved = [];
 
@@ -899,7 +1015,6 @@
         }
       }
 
-      // Jika ada batch expired yang terkena potong, tampilkan modal konfirmasi peringatan
       if (expiredBatchesInvolved.length > 0) {
         pendingDeduction = { productId, qtyToDeduct, eligibleBatches };
         document.getElementById('expiredConfirmMessage').innerHTML =
@@ -952,7 +1067,7 @@
     }
 
     // ==========================================
-    // 6. EVALUASI STATUS REAL-TIME & RENDER TABEL
+    // EVALUASI STATUS REAL-TIME & RENDER TABEL
     // ==========================================
     function getBatchStatus(batch) {
       if (batch.qtySisa <= 0) {
@@ -1000,13 +1115,7 @@
 
     function renderTable() {
       const tbody = document.getElementById('batchTableBody');
-      const search = document.getElementById('searchInput').value.toLowerCase();
-      const filter = document.getElementById('statusFilter').value;
-
       let totalStok = 0, countAman = 0, countWarn = 0, countExp = 0;
-
-      const productMap = {};
-      masterProducts.forEach(p => { productMap[p.id] = p; });
 
       batches.forEach(b => {
         if (b.qtySisa > 0) {
@@ -1023,19 +1132,7 @@
       document.getElementById('statWarning').textContent = countWarn;
       document.getElementById('statExpired').textContent = countExp;
 
-      const sorted = [...batches].sort((a, b) => new Date(a.expTime) - new Date(b.expTime));
-
-      const filtered = sorted.filter(b => {
-        const prod = productMap[b.productId] || { nama: 'Unknown', kategori: '-' };
-        const st = getBatchStatus(b);
-
-        const matchSearch = prod.nama.toLowerCase().includes(search) || prod.kategori.toLowerCase().includes(search) || b.batchId.toLowerCase().includes(search);
-        if (!matchSearch) return false;
-
-        if (filter === 'ACTIVE') return b.qtySisa > 0;
-        if (filter === 'ALL') return true;
-        return st.code === filter;
-      });
+      const { list: filtered, productMap } = getFilteredSortedBatches(true);
 
       if (filtered.length === 0) {
         tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-slate-400 text-sm">Belum ada data batch produksi yang sesuai filter.</td></tr>`;
