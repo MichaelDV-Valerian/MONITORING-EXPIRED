@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Monitoring Hasil Produksi & FEFO</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <!-- Navbar -->
+  <nav class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="bg-indigo-600 text-white p-2 rounded-lg">
+          <i data-lucide="package-check" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h1 class="font-bold text-slate-900 leading-tight">ProdTrack FEFO</h1>
+          <p class="text-xs text-slate-500">Monitoring Produksi & Kadaluwarsa (+7 Hari)</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button onclick="seedDummyData()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+          <span>Data Simulasi</span>
+        </button>
+        <button onclick="openMasterModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition">
+          <i data-lucide="database" class="w-4 h-4"></i>
+          <span>Master Produk</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between text-slate-500 text-xs font-medium">
+          <span>TOTAL STOK AKTIF</span>
+          <i data-lucide="layers" class="w-4 h-4 text-indigo-500"></i>
+        </div>
+        <p id="statTotalStok" class="text-2xl font-bold text-slate-900 mt-1">0</p>
+        <p class="text-xs text-slate-400 mt-0.5">Dari semua batch aktif</p>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm">
+        <div class="flex items-center justify-between text-emerald-600 text-xs font-medium">
+          <span>AMAN (&gt; 2 HARI)</span>
+          <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+        </div>
+        <p id="statAman" class="text-2xl font-bold text-emerald-700 mt-1">0</p>
+        <p class="text-xs text-slate-400 mt-0.5">Batch kondisi baik</p>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-amber-200 shadow-sm">
+        <div class="flex items-center justify-between text-amber-600 text-xs font-medium">
+          <span>SEGERA EXP (&le; 2 HARI)</span>
+          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+        </div>
+        <p id="statWarning" class="text-2xl font-bold text-amber-700 mt-1">0</p>
+        <p class="text-xs text-slate-400 mt-0.5">Prioritas keluar FEFO</p>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-rose-200 shadow-sm">
+        <div class="flex items-center justify-between text-rose-600 text-xs font-medium">
+          <span>EXPIRED</span>
+          <i data-lucide="x-octagon" class="w-4 h-4"></i>
+        </div>
+        <p id="statExpired" class="text-2xl font-bold text-rose-700 mt-1">0</p>
+        <p class="text-xs text-slate-400 mt-0.5">Melewati batas +7 hari</p>
+      </div>
+    </div>
+
+    <!-- Action Forms: Input Produksi & Pengeluaran Barang -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Form 1: Input Hasil Produksi -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <h2 class="font-semibold text-slate-900">Input Hasil Produksi (Masuk)</h2>
+        </div>
+
+        <form id="formProduksi" onsubmit="handleInputProduksi(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Nama Barang (Dari Master)</label>
+            <select id="prodSelect" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white">
+              <option value="">-- Pilih Produk --</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Quantity Produksi</label>
+              <input type="number" id="prodQty" min="1" required placeholder="Contoh: 50" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Waktu Produksi Selesai</label>
+              <input type="datetime-local" id="prodTime" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+          </div>
+
+          <div class="bg-slate-50 rounded-lg p-3 border border-slate-200 flex items-center justify-between text-xs">
+            <span class="text-slate-500">Estimasi Expired (+7 Hari / Hari ke-8):</span>
+            <span id="previewExp" class="font-semibold text-indigo-600">-</span>
+          </div>
+
+          <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition flex items-center justify-center gap-2">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Simpan Hasil Produksi</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Form 2: Pengeluaran Barang (FEFO) -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+            <h2 class="font-semibold text-slate-900">Pengeluaran Barang (Otomatis FEFO)</h2>
+          </div>
+          <span class="text-[11px] font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md">First Expired, First Out</span>
+        </div>
+
+        <form id="formKeluar" onsubmit="handlePengeluaran(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Pilih Barang yang Keluar</label>
+            <select id="outSelect" onchange="updateAvailableHint()" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white">
+              <option value="">-- Pilih Produk --</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Quantity Keluar</label>
+              <input type="number" id="outQty" min="1" required placeholder="Contoh: 15" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Total Stok Tersedia</label>
+              <div id="availableStockBox" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+                0
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-amber-50/70 rounded-lg p-3 border border-amber-200/80 text-xs text-amber-800 flex items-start gap-2">
+            <i data-lucide="info" class="w-4 h-4 shrink-0 mt-0.5 text-amber-600"></i>
+            <span>Sistem otomatis memotong stok dari batch dengan waktu <strong>Expired paling dekat</strong> terlebih dahulu.</span>
+          </div>
+
+          <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition flex items-center justify-center gap-2">
+            <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+            <span>Proses Barang Keluar</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Main Monitoring Table -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="font-semibold text-slate-900">Tabel Keseluruhan Batch Produksi</h2>
+          <p class="text-xs text-slate-500">Diurutkan otomatis berdasarkan waktu expired terdekat (FEFO)</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <input type="text" id="searchInput" onkeyup="renderTable()" placeholder="Cari nama / kategori..." class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+          
+          <select id="statusFilter" onchange="renderTable()" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+            <option value="ACTIVE">Semua Stok Aktif</option>
+            <option value="ALL">Semua (Termasuk Habis)</option>
+            <option value="SAFE">Aman (&gt; 2 Hari)</option>
+            <option value="WARNING">Segera Exp (&le; 2 Hari)</option>
+            <option value="EXPIRED">Expired</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              <th class="py-3 px-4">ID Batch</th>
+              <th class="py-3 px-4">Nama Barang</th>
+              <th class="py-3 px-4">Kategori</th>
+              <th class="py-3 px-4">Sisa / Awal</th>
+              <th class="py-3 px-4">Waktu Produksi</th>
+              <th class="py-3 px-4">Waktu Expired (+7 Hr)</th>
+              <th class="py-3 px-4">Sisa Waktu</th>
+              <th class="py-3 px-4">Status</th>
+            </tr>
+          </thead>
+          <tbody id="batchTableBody" class="divide-y divide-slate-100 text-sm">
+            <!-- Rows injected via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Log Pengeluaran -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="font-semibold text-sm text-slate-800">Riwayat Pemotongan FEFO Terbaru</h3>
+        <button onclick="clearAllData()" class="text-xs text-rose-600 hover:underline">Reset Semua Data</button>
+      </div>
+      <div id="logContainer" class="p-4 text-xs text-slate-600 space-y-2 max-h-48 overflow-y-auto">
+        <p class="text-slate-400 italic">Belum ada riwayat pengeluaran barang.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal Master Produk -->
+  <div id="masterModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-xl border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="font-bold text-slate-900">Master Data Produk</h3>
+        <button onclick="closeMasterModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5">
+        <form onsubmit="handleAddMaster(event)" class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <p class="text-xs font-semibold text-slate-700 uppercase">Tambah Produk Baru (Anti-Duplikasi)</p>
+          <div>
+            <input type="text" id="mNama" required placeholder="Nama Barang (misal: Roti Tawar Gandum)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <input type="text" id="mKategori" required placeholder="Kategori (misal: Bakery)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <input type="text" id="mSatuan" required placeholder="Satuan (misal: Pcs / Box)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition">
+            Simpan ke Master Produk
+          </button>
+        </form>
+
+        <div>
+          <p class="text-xs font-semibold text-slate-500 uppercase mb-2">Daftar Produk Terdaftar (<span id="masterCount">0</span>)</p>
+          <div id="masterList" class="divide-y divide-slate-100 max-h-48 overflow-y-auto border border-slate-200 rounded-lg">
+            <!-- Master items -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform transition-all duration-300 translate-y-20 opacity-0">
+    <div id="toastContent" class="px-4 py-3 rounded-xl shadow-lg text-sm font-medium text-white flex items-center gap-2"></div>
+  </div>
+
+  <script>
+    // State Management dengan LocalStorage
+    const STORAGE_KEYS = {
+      MASTER: 'prodtrack_master_v1',
+      BATCHES: 'prodtrack_batches_v1',
+      LOGS: 'prodtrack_logs_v1'
+    };
+
+    let masterProducts = JSON.parse(localStorage.getItem(STORAGE_KEYS.MASTER)) || [];
+    let batches = JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCHES)) || [];
+    let logs = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOGS)) || [];
+
+    const EXPIRY_DAYS = 7; // Expired di hari ke-8 (+7 hari dari produksi)
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEYS.MASTER, JSON.stringify(masterProducts));
+      localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(batches));
+      localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(logs));
+    }
+
+    // Format Tanggal & Waktu
+    function formatDateTime(isoString) {
+      const d = new Date(isoString);
+      return d.toLocaleString('id-ID', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function getLocalDatetimeInput(dateObj = new Date()) {
+      const tzOffset = dateObj.getTimezoneOffset() * 60000;
+      return new Date(dateObj - tzOffset).toISOString().slice(0, 16);
+    }
+
+    function calculateExpiry(prodIsoString) {
+      const d = new Date(prodIsoString);
+      d.setDate(d.getDate() + EXPIRY_DAYS);
+      return d.toISOString();
+    }
+
+    // Toast Alert
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const content = document.getElementById('toastContent');
+      const colors = {
+        success: 'bg-emerald-600',
+        error: 'bg-rose-600',
+        warning: 'bg-amber-600'
+      };
+      content.className = `px-4 py-3 rounded-xl shadow-lg text-sm font-medium text-white flex items-center gap-2 ${colors[type]}`;
+      content.textContent = message;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+
+    // Master Modal Handlers
+    function openMasterModal() {
+      document.getElementById('masterModal').classList.remove('hidden');
+      document.getElementById('masterModal').classList.add('flex');
+      renderMasterList();
+    }
+
+    function closeMasterModal() {
+      document.getElementById('masterModal').classList.add('hidden');
+      document.getElementById('masterModal').classList.remove('flex');
+    }
+
+    function handleAddMaster(e) {
+      e.preventDefault();
+      const nama = document.getElementById('mNama').value.trim();
+      const kategori = document.getElementById('mKategori').value.trim();
+      const satuan = document.getElementById('mSatuan').value.trim();
+
+      // Cek duplikasi (Case-Insensitive)
+      const exists = masterProducts.some(p => p.nama.toLowerCase() === nama.toLowerCase());
+      if (exists) {
+        showToast(`Gagal: "${nama}" sudah terdaftar di Master Produk!`, 'error');
+        return;
+      }
+
+      masterProducts.push({
+        id: 'PRD-' + Date.now().toString().slice(-4),
+        nama,
+        kategori,
+        satuan
+      });
+
+      saveData();
+      e.target.reset();
+      renderMasterList();
+      populateDropdowns();
+      showToast(`Produk "${nama}" berhasil ditambahkan ke Master.`);
+    }
+
+    function renderMasterList() {
+      const list = document.getElementById('masterList');
+      document.getElementById('masterCount').textContent = masterProducts.length;
+
+      if (masterProducts.length === 0) {
+        list.innerHTML = `<p class="p-3 text-xs text-slate-400 text-center">Belum ada produk terdaftar.</p>`;
+        return;
+      }
+
+      list.innerHTML = masterProducts.map(p => `
+        <div class="p-3 flex items-center justify-between text-sm bg-white">
+          <div>
+            <p class="font-medium text-slate-800">${p.nama}</p>
+            <p class="text-xs text-slate-500">${p.kategori} &bull; Satuan: ${p.satuan}</p>
+          </div>
+          <span class="text-xs font-mono text-slate-400">${p.id}</span>
+        </div>
+      `).join('');
+    }
+
+    function populateDropdowns() {
+      const prodSelect = document.getElementById('prodSelect');
+      const outSelect = document.getElementById('outSelect');
+
+      const options = `<option value="">-- Pilih Produk --</option>` + 
+        masterProducts.map(p => `<option value="${p.id}">${p.nama} (${p.satuan})</option>`).join('');
+
+      prodSelect.innerHTML = options;
+      outSelect.innerHTML = options;
+      updateAvailableHint();
+    }
+
+    // Preview Tanggal Expired saat form produksi berubah
+    document.getElementById('prodTime').addEventListener('change', function() {
+      if (this.value) {
+        const expIso = calculateExpiry(new Date(this.value).toISOString());
+        document.getElementById('previewExp').textContent = formatDateTime(expIso);
+      }
+    });
+
+    // Input Hasil Produksi
+    function handleInputProduksi(e) {
+      e.preventDefault();
+      const productId = document.getElementById('prodSelect').value;
+      const qty = parseInt(document.getElementById('prodQty').value, 10);
+      const timeVal = document.getElementById('prodTime').value;
+
+      if (!productId) {
+        showToast('Pilih nama barang terlebih dahulu!', 'error');
+        return;
+      }
+
+      const prodIso = new Date(timeVal).toISOString();
+      const expIso = calculateExpiry(prodIso);
+
+      const newBatch = {
+        batchId: 'BCH-' + Math.floor(1000 + Math.random() * 9000),
+        productId,
+        qtyAwal: qty,
+        qtySisa: qty,
+        prodTime: prodIso,
+        expTime: expIso
+      };
+
+      batches.push(newBatch);
+      saveData();
+
+      document.getElementById('prodQty').value = '';
+      setDefaultProdTime();
+      renderAll();
+      showToast(`Batch ${newBatch.batchId} berhasil ditambahkan (+${qty}).`);
+    }
+
+    // Hitung stok tersedia untuk produk tertentu
+    function getAvailableStock(productId) {
+      return batches
+        .filter(b => b.productId === productId && b.qtySisa > 0)
+        .reduce((sum, b) => sum + b.qtySisa, 0);
+    }
+
+    function updateAvailableHint() {
+      const productId = document.getElementById('outSelect').value;
+      const box = document.getElementById('availableStockBox');
+      if (!productId) {
+        box.textContent = '0';
+        return;
+      }
+      const product = masterProducts.find(p => p.id === productId);
+      const total = getAvailableStock(productId);
+      box.textContent = `${total} ${product ? product.satuan : ''}`;
+    }
+
+    // Pengeluaran Barang Otomatis (FEFO)
+    function handlePengeluaran(e) {
+      e.preventDefault();
+      const productId = document.getElementById('outSelect').value;
+      let qtyToDeduct = parseInt(document.getElementById('outQty').value, 10);
+
+      if (!productId) return;
+
+      const totalAvailable = getAvailableStock(productId);
+      if (qtyToDeduct > totalAvailable) {
+        showToast(`Stok tidak cukup! Tersedia hanya ${totalAvailable}.`, 'error');
+        return;
+      }
+
+      const product = masterProducts.find(p => p.id === productId);
+
+      // Urutkan batch milik produk ini berdasarkan expTime paling awal (FEFO)
+      const eligibleBatches = batches
+        .filter(b => b.productId === productId && b.qtySisa > 0)
+        .sort((a, b) => new Date(a.expTime) - new Date(b.expTime));
+
+      let breakdown = [];
+      let remaining = qtyToDeduct;
+
+      for (let batch of eligibleBatches) {
+        if (remaining <= 0) break;
+        const take = Math.min(batch.qtySisa, remaining);
+        batch.qtySisa -= take;
+        remaining -= take;
+        breakdown.push(`${batch.batchId} (-${take})`);
+      }
+
+      logs.unshift({
+        time: new Date().toISOString(),
+        text: `Keluar <strong>${qtyToDeduct} ${product.satuan} ${product.nama}</strong> &rarr; Dipotong dari: ${breakdown.join(', ')}`
+      });
+
+      saveData();
+      document.getElementById('outQty').value = '';
+      renderAll();
+      showToast(`Pengeluaran ${qtyToDeduct} ${product.satuan} berhasil diproses (FEFO).`);
+    }
+
+    // Evaluasi Status Real-Time
+    function getBatchStatus(batch) {
+      if (batch.qtySisa <= 0) {
+        return { code: 'EMPTY', label: 'Habis', badge: 'bg-slate-100 text-slate-600', rowClass: 'opacity-60', timeText: '-' };
+      }
+
+      const now = new Date();
+      const exp = new Date(batch.expTime);
+      const diffMs = exp - now;
+      const diffHours = diffMs / (1000 * 60 * 60);
+      const diffDays = diffHours / 24;
+
+      if (diffMs <= 0) {
+        return {
+          code: 'EXPIRED',
+          label: 'EXPIRED',
+          badge: 'bg-rose-100 text-rose-700 border border-rose-200',
+          rowClass: 'bg-rose-50/60',
+          timeText: 'Lewat batas waktu'
+        };
+      }
+
+      const daysLeft = Math.floor(diffDays);
+      const hoursLeft = Math.floor(diffHours % 24);
+      const timeText = daysLeft > 0 ? `${daysLeft} hari ${hoursLeft} jam` : `${hoursLeft} jam lagi`;
+
+      if (diffDays <= 2) {
+        return {
+          code: 'WARNING',
+          label: 'Segera Exp',
+          badge: 'bg-amber-100 text-amber-800 border border-amber-200',
+          rowClass: 'bg-amber-50/40',
+          timeText
+        };
+      }
+
+      return {
+        code: 'SAFE',
+        label: 'Aman',
+        badge: 'bg-emerald-100 text-emerald-700 border border-emerald-200',
+        rowClass: '',
+        timeText
+      };
+    }
+
+    // Render Tabel Utama & Statistik
+    function renderTable() {
+      const tbody = document.getElementById('batchTableBody');
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const filter = document.getElementById('statusFilter').value;
+
+      let totalStok = 0, countAman = 0, countWarn = 0, countExp = 0;
+
+      // Hitung statistik global dari stok aktif
+      batches.forEach(b => {
+        if (b.qtySisa > 0) {
+          totalStok += b.qtySisa;
+          const st = getBatchStatus(b);
+          if (st.code === 'SAFE') countAman++;
+          else if (st.code === 'WARNING') countWarn++;
+          else if (st.code === 'EXPIRED') countExp++;
+        }
+      });
+
+      document.getElementById('statTotalStok').textContent = totalStok;
+      document.getElementById('statAman').textContent = countAman;
+      document.getElementById('statWarning').textContent = countWarn;
+      document.getElementById('statExpired').textContent = countExp;
+
+      // Urutkan FEFO (Expired terdekat di atas)
+      const sorted = [...batches].sort((a, b) => new Date(a.expTime) - new Date(b.expTime));
+
+      const filtered = sorted.filter(b => {
+        const prod = masterProducts.find(p => p.id === b.productId) || { nama: 'Unknown', kategori: '-' };
+        const st = getBatchStatus(b);
+
+        const matchSearch = prod.nama.toLowerCase().includes(search) || prod.kategori.toLowerCase().includes(search) || b.batchId.toLowerCase().includes(search);
+        if (!matchSearch) return false;
+
+        if (filter === 'ACTIVE') return b.qtySisa > 0;
+        if (filter === 'ALL') return true;
+        return st.code === filter;
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400 text-sm">Tidak ada data batch yang sesuai filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(b => {
+        const prod = masterProducts.find(p => p.id === b.productId) || { nama: 'Unknown', kategori: '-', satuan: '' };
+        const st = getBatchStatus(b);
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition ${st.rowClass}">
+            <td class="py-3 px-4 font-mono text-xs font-semibold text-slate-600">${b.batchId}</td>
+            <td class="py-3 px-4 font-medium text-slate-900">${prod.nama}</td>
+            <td class="py-3 px-4 text-slate-500 text-xs">${prod.kategori}</td>
+            <td class="py-3 px-4">
+              <span class="font-bold text-slate-900">${b.qtySisa}</span>
+              <span class="text-xs text-slate-400">/ ${b.qtyAwal} ${prod.satuan}</span>
+            </td>
+            <td class="py-3 px-4 text-xs text-slate-600">${formatDateTime(b.prodTime)}</td>
+            <td class="py-3 px-4 text-xs font-medium text-slate-800">${formatDateTime(b.expTime)}</td>
+            <td class="py-3 px-4 text-xs font-medium text-slate-600">${st.timeText}</td>
+            <td class="py-3 px-4">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${st.badge}">
+                ${st.label}
+              </span>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderLogs() {
+      const container = document.getElementById('logContainer');
+      if (logs.length === 0) {
+        container.innerHTML = `<p class="text-slate-400 italic">Belum ada riwayat pengeluaran barang.</p>`;
+        return;
+      }
+      container.innerHTML = logs.map(l => `
+        <div class="flex items-start justify-between gap-2 pb-2 border-b border-slate-100 last:border-0">
+          <span>${l.text}</span>
+          <span class="text-[11px] text-slate-400 shrink-0">${formatDateTime(l.time)}</span>
+        </div>
+      `).join('');
+    }
+
+    function setDefaultProdTime() {
+      const nowStr = getLocalDatetimeInput();
+      document.getElementById('prodTime').value = nowStr;
+      const expIso = calculateExpiry(new Date().toISOString());
+      document.getElementById('previewExp').textContent = formatDateTime(expIso);
+    }
+
+    function renderAll() {
+      populateDropdowns();
+      renderTable();
+      renderLogs();
+    }
+
+    // Data Simulasi untuk Uji Coba Cepat
+    function seedDummyData() {
+      masterProducts = [
+        { id: 'PRD-1001', nama: 'Roti Tawar Kupas', kategori: 'Bakery', satuan: 'Pack' },
+        { id: 'PRD-1002', nama: 'Susu Pasteurisasi 1L', kategori: 'Dairy', satuan: 'Botol' },
+        { id: 'PRD-1003', nama: 'Risoles Mayo Frozen', kategori: 'Frozen Food', satuan: 'Box' }
+      ];
+
+      const now = Date.now();
+      const dayMs = 24 * 60 * 60 * 1000;
+
+      // Buat batch dengan waktu produksi berbeda-beda untuk demo FEFO & Status
+      const p1 = new Date(now - 7.2 * dayMs).toISOString(); // Sudah lewat 7 hari (Expired)
+      const p2 = new Date(now - 5.8 * dayMs).toISOString(); // Sisa ~1.2 hari (Segera Exp)
+      const p3 = new Date(now - 1.0 * dayMs).toISOString(); // Sisa 6 hari (Aman)
+      const p4 = new Date(now - 6.2 * dayMs).toISOString(); // Sisa ~0.8 hari (Segera Exp)
+
+      batches = [
+        { batchId: 'BCH-4102', productId: 'PRD-1001', qtyAwal: 20, qtySisa: 12, prodTime: p2, expTime: calculateExpiry(p2) },
+        { batchId: 'BCH-4109', productId: 'PRD-1001', qtyAwal: 35, qtySisa: 35, prodTime: p3, expTime: calculateExpiry(p3) },
+        { batchId: 'BCH-3901', productId: 'PRD-1002', qtyAwal: 15, qtySisa: 8, prodTime: p1, expTime: calculateExpiry(p1) },
+        { batchId: 'BCH-4205', productId: 'PRD-1003', qtyAwal: 40, qtySisa: 25, prodTime: p4, expTime: calculateExpiry(p4) }
+      ];
+
+      logs = [];
+      saveData();
+      renderAll();
+      showToast('Data simulasi berhasil dimuat! Coba keluarkan 15 Pack Roti Tawar Kupas.');
+    }
+
+    function clearAllData() {
+      if (!confirm('Hapus semua data master, batch, dan riwayat?')) return;
+      masterProducts = [];
+      batches = [];
+      logs = [];
+      saveData();
+      renderAll();
+      showToast('Semua data telah direset.', 'warning');
+    }
+
+    // Init
+    lucide.createIcons();
+    setDefaultProdTime();
+    renderAll();
+  </script>
+</body>
+</html>
