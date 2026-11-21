@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Monitoring Hasil Produksi & FEFO</title>
+  <title>TO MEET MONITORING EXPIRED</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
@@ -21,16 +21,12 @@
           <i data-lucide="package-check" class="w-5 h-5"></i>
         </div>
         <div>
-          <h1 class="font-bold text-slate-900 leading-tight">ProdTrack FEFO</h1>
-          <p class="text-xs text-slate-500">Monitoring Produksi & Kadaluwarsa (+7 Hari)</p>
+          <h1 class="font-bold text-slate-900 leading-tight">TO MEET MONITORING EXPIRED</h1>
+          <p class="text-xs text-slate-500">Sistem Monitoring Hasil Produksi &amp; FEFO (+7 Hari)</p>
         </div>
       </div>
 
       <div class="flex items-center gap-2 sm:gap-3">
-        <button onclick="seedDummyData()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg transition">
-          <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
-          <span>Data Simulasi</span>
-        </button>
         <button onclick="openMasterModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition">
           <i data-lucide="database" class="w-4 h-4"></i>
           <span>Master Produk</span>
@@ -263,9 +259,9 @@
   <script>
     // State Management dengan LocalStorage
     const STORAGE_KEYS = {
-      MASTER: 'prodtrack_master_v1',
-      BATCHES: 'prodtrack_batches_v1',
-      LOGS: 'prodtrack_logs_v1'
+      MASTER: 'tomeet_master_v1',
+      BATCHES: 'tomeet_batches_v1',
+      LOGS: 'tomeet_logs_v1'
     };
 
     let masterProducts = JSON.parse(localStorage.getItem(STORAGE_KEYS.MASTER)) || [];
@@ -544,6 +540,10 @@
 
       let totalStok = 0, countAman = 0, countWarn = 0, countExp = 0;
 
+      // Indexing master produk untuk performa cepat
+      const productMap = {};
+      masterProducts.forEach(p => { productMap[p.id] = p; });
+
       // Hitung statistik global dari stok aktif
       batches.forEach(b => {
         if (b.qtySisa > 0) {
@@ -564,7 +564,7 @@
       const sorted = [...batches].sort((a, b) => new Date(a.expTime) - new Date(b.expTime));
 
       const filtered = sorted.filter(b => {
-        const prod = masterProducts.find(p => p.id === b.productId) || { nama: 'Unknown', kategori: '-' };
+        const prod = productMap[b.productId] || { nama: 'Unknown', kategori: '-' };
         const st = getBatchStatus(b);
 
         const matchSearch = prod.nama.toLowerCase().includes(search) || prod.kategori.toLowerCase().includes(search) || b.batchId.toLowerCase().includes(search);
@@ -576,12 +576,12 @@
       });
 
       if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400 text-sm">Tidak ada data batch yang sesuai filter.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-slate-400 text-sm">Belum ada data batch produksi. Silakan tambah produk di Master Produk lalu input hasil produksi.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = filtered.map(b => {
-        const prod = masterProducts.find(p => p.id === b.productId) || { nama: 'Unknown', kategori: '-', satuan: '' };
+        const prod = productMap[b.productId] || { nama: 'Unknown', kategori: '-', satuan: '' };
         const st = getBatchStatus(b);
 
         return `
@@ -631,36 +631,6 @@
       populateDropdowns();
       renderTable();
       renderLogs();
-    }
-
-    // Data Simulasi untuk Uji Coba Cepat
-    function seedDummyData() {
-      masterProducts = [
-        { id: 'PRD-1001', nama: 'Roti Tawar Kupas', kategori: 'Bakery', satuan: 'Pack' },
-        { id: 'PRD-1002', nama: 'Susu Pasteurisasi 1L', kategori: 'Dairy', satuan: 'Botol' },
-        { id: 'PRD-1003', nama: 'Risoles Mayo Frozen', kategori: 'Frozen Food', satuan: 'Box' }
-      ];
-
-      const now = Date.now();
-      const dayMs = 24 * 60 * 60 * 1000;
-
-      // Buat batch dengan waktu produksi berbeda-beda untuk demo FEFO & Status
-      const p1 = new Date(now - 7.2 * dayMs).toISOString(); // Sudah lewat 7 hari (Expired)
-      const p2 = new Date(now - 5.8 * dayMs).toISOString(); // Sisa ~1.2 hari (Segera Exp)
-      const p3 = new Date(now - 1.0 * dayMs).toISOString(); // Sisa 6 hari (Aman)
-      const p4 = new Date(now - 6.2 * dayMs).toISOString(); // Sisa ~0.8 hari (Segera Exp)
-
-      batches = [
-        { batchId: 'BCH-4102', productId: 'PRD-1001', qtyAwal: 20, qtySisa: 12, prodTime: p2, expTime: calculateExpiry(p2) },
-        { batchId: 'BCH-4109', productId: 'PRD-1001', qtyAwal: 35, qtySisa: 35, prodTime: p3, expTime: calculateExpiry(p3) },
-        { batchId: 'BCH-3901', productId: 'PRD-1002', qtyAwal: 15, qtySisa: 8, prodTime: p1, expTime: calculateExpiry(p1) },
-        { batchId: 'BCH-4205', productId: 'PRD-1003', qtyAwal: 40, qtySisa: 25, prodTime: p4, expTime: calculateExpiry(p4) }
-      ];
-
-      logs = [];
-      saveData();
-      renderAll();
-      showToast('Data simulasi berhasil dimuat! Coba keluarkan 15 Pack Roti Tawar Kupas.');
     }
 
     function clearAllData() {
