@@ -10,6 +10,9 @@
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <!-- Chart.js untuk 1 Grafik Dinamis per Barang -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase Compat SDK (App & Realtime Database) -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     body { font-family: 'Inter', sans-serif; }
@@ -25,12 +28,25 @@
           <i data-lucide="package-check" class="w-5 h-5"></i>
         </div>
         <div>
-          <h1 class="font-bold text-slate-900 text-sm sm:text-base leading-tight">TO MEET MONITORING EXPIRED</h1>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-slate-900 text-sm sm:text-base leading-tight">TO MEET MONITORING EXPIRED</h1>
+            <!-- Cloud Sync Status Badge -->
+            <span id="syncStatusBadge" onclick="openFirebaseConfigModal()" title="Klik untuk mengatur koneksi Firebase Cloud" class="cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200 transition">
+              <span id="syncDot" class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+              <span id="syncLabel">Mode Lokal</span>
+            </span>
+          </div>
           <p class="text-[11px] sm:text-xs text-slate-500 hidden sm:block">Sistem Monitoring Hasil Produksi &amp; FEFO</p>
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5 sm:gap-2">
+        <!-- Cloud Setup Button -->
+        <button onclick="openFirebaseConfigModal()" title="Pengaturan Sinkronisasi Cloud (Firebase)" class="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-lg border border-indigo-200 transition">
+          <i data-lucide="cloud" class="w-3.5 h-3.5 text-indigo-600"></i>
+          <span class="hidden lg:inline">Cloud Sync</span>
+        </button>
+
         <!-- Export Excel (.xlsx) Laporan Lengkap -->
         <button onclick="exportToExcel()" title="Export Laporan ke Excel (.xlsx)" class="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition">
           <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-emerald-600"></i>
@@ -49,7 +65,7 @@
         </button>
         <input type="file" id="importFileInput" accept=".json" onchange="importBackupJSON(event)" class="hidden" />
 
-        <button onclick="openMasterModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition">
+        <button onclick="openMasterModal()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition">
           <i data-lucide="database" class="w-4 h-4"></i>
           <span>Master Produk</span>
         </button>
@@ -284,7 +300,6 @@
 
     <!-- Auto-Ranking Top Highlight Cards (Tanpa Tabel 50 Barang) -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <!-- Card 1: Top Fast Moving -->
       <div class="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm">
         <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-bold text-emerald-700 uppercase tracking-wide flex items-center gap-1.5">
@@ -298,7 +313,6 @@
         </div>
       </div>
 
-      <!-- Card 2: Slow Moving -->
       <div class="bg-white p-4 rounded-xl border border-amber-200 shadow-sm">
         <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-bold text-amber-700 uppercase tracking-wide flex items-center gap-1.5">
@@ -312,7 +326,6 @@
         </div>
       </div>
 
-      <!-- Card 3: High Waste / Expired -->
       <div class="bg-white p-4 rounded-xl border border-rose-200 shadow-sm">
         <div class="flex items-center justify-between mb-2">
           <span class="text-xs font-bold text-rose-700 uppercase tracking-wide flex items-center gap-1.5">
@@ -446,6 +459,55 @@
     </div>
   </section>
 
+  <!-- ========================================================= -->
+  <!-- MODAL KONFIGURASI FIREBASE REALTIME DATABASE              -->
+  <!-- ========================================================= -->
+  <div id="firebaseModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full shadow-xl border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i data-lucide="cloud" class="w-5 h-5 text-indigo-600"></i>
+          <h3 class="font-bold text-slate-900">Sinkronisasi Cloud (Firebase)</h3>
+        </div>
+        <button onclick="closeFirebaseConfigModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-4">
+        <div id="firebaseCurrentStatusBox" class="p-3 rounded-xl border text-xs"></div>
+
+        <form onsubmit="handleSaveFirebaseConfig(event)" class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Database URL (Wajib)</label>
+            <input type="url" id="fbDatabaseUrl" required placeholder="https://nama-project-default-rtdb.asia-southeast1.firebasedatabase.app" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">API Key (Wajib)</label>
+            <input type="text" id="fbApiKey" required placeholder="AIzaSy..." class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Project ID (Wajib)</label>
+            <input type="text" id="fbProjectId" required placeholder="nama-project-12345" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-indigo-500 outline-none" />
+          </div>
+
+          <div class="flex items-center gap-2 pt-1">
+            <input type="checkbox" id="fbUploadLocalCheck" checked class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
+            <label for="fbUploadLocalCheck" class="text-xs text-slate-600">Kirim data lokal yang ada saat ini ke Cloud (jika Cloud masih kosong)</label>
+          </div>
+
+          <div class="flex flex-wrap items-center justify-between gap-2 pt-2">
+            <button type="button" onclick="disconnectFirebase()" class="px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 rounded-lg">Putuskan Cloud</button>
+            <div class="flex gap-2">
+              <button type="button" onclick="closeFirebaseConfigModal()" class="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Tutup</button>
+              <button type="submit" class="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Simpan &amp; Hubungkan</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal Master Produk (Add, Edit, Delete, Custom Shelf Life) -->
   <div id="masterModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl max-w-xl w-full shadow-xl border border-slate-200 overflow-hidden">
@@ -566,12 +628,22 @@
   </div>
 
   <script>
-    // State Management dengan LocalStorage (Tetap kompatibel dengan data sebelumnya)
+    // =========================================================================
+    // KONFIGURASI FIREBASE REALTIME DATABASE (OTOMATIS TERHUBUNG DI PC & HP)
+    // =========================================================================
+    const DEFAULT_FIREBASE_CONFIG = {
+      apiKey: "AIzaSyBS-mCtXN6kyITbatmH9dsHvD8T2A8Fi6o",
+      databaseURL: "https://tomeet-monitoring-expired-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "tomeet-monitoring-expired"
+    };
+
+    // State Management dengan LocalStorage + Firebase Realtime Database
     const STORAGE_KEYS = {
       MASTER: 'tomeet_master_v2',
       BATCHES: 'tomeet_batches_v2',
       LOGS: 'tomeet_logs_v2',
-      MOVEMENTS: 'tomeet_movements_v1'
+      MOVEMENTS: 'tomeet_movements_v1',
+      FB_CONFIG: 'tomeet_firebase_cfg_v1'
     };
 
     let masterProducts = JSON.parse(localStorage.getItem(STORAGE_KEYS.MASTER)) || [];
@@ -581,7 +653,6 @@
 
     masterProducts = masterProducts.map(p => ({ ...p, shelfLifeDays: p.shelfLifeDays || 7 }));
 
-    // Migrasi otomatis: Jika sudah ada batch lama tapi movements masih kosong, bangun riwayat masuk awal dari batch yang ada
     if (movements.length === 0 && batches.length > 0) {
       batches.forEach(b => {
         movements.push({
@@ -599,12 +670,192 @@
 
     let pendingDeduction = null;
     let movementChartInstance = null;
+    let firebaseDbRef = null;
+    let isCloudConnected = false;
+    let isApplyingRemoteUpdate = false;
 
-    function saveData() {
+    function saveLocalCache() {
       localStorage.setItem(STORAGE_KEYS.MASTER, JSON.stringify(masterProducts));
       localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(batches));
       localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(logs));
       localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify(movements));
+    }
+
+    function saveData() {
+      saveLocalCache();
+      if (isCloudConnected && firebaseDbRef && !isApplyingRemoteUpdate) {
+        firebaseDbRef.set({
+          updatedAt: new Date().toISOString(),
+          masterProducts,
+          batches,
+          logs,
+          movements
+        }).catch(err => {
+          console.error('Firebase write error:', err);
+          showToast('Gagal menyinkronkan ke Cloud: ' + err.message, 'error');
+        });
+      }
+    }
+
+    // =========================================================================
+    // KONEKSI FIREBASE REALTIME DATABASE
+    // =========================================================================
+    function updateSyncUI(status, text) {
+      const badge = document.getElementById('syncStatusBadge');
+      const dot = document.getElementById('syncDot');
+      const label = document.getElementById('syncLabel');
+      label.textContent = text;
+
+      if (status === 'connected') {
+        badge.className = 'cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 transition';
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse';
+      } else if (status === 'connecting') {
+        badge.className = 'cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-800 border border-indigo-200 transition';
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-indigo-500 animate-ping';
+      } else {
+        badge.className = 'cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200 transition';
+        dot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500';
+      }
+    }
+
+    function getActiveFirebaseConfig() {
+      if (DEFAULT_FIREBASE_CONFIG.databaseURL && DEFAULT_FIREBASE_CONFIG.apiKey) {
+        return DEFAULT_FIREBASE_CONFIG;
+      }
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEYS.FB_CONFIG) || 'null');
+      if (saved && saved.databaseURL && saved.apiKey) {
+        return saved;
+      }
+      return null;
+    }
+
+    function initFirebaseSync(uploadLocalIfEmpty = true) {
+      const cfg = getActiveFirebaseConfig();
+      if (!cfg || typeof firebase === 'undefined') {
+        isCloudConnected = false;
+        updateSyncUI('local', 'Mode Lokal');
+        return;
+      }
+
+      try {
+        updateSyncUI('connecting', 'Menghubungkan...');
+        if (firebase.apps.length > 0) {
+          firebase.apps.forEach(app => app.delete());
+        }
+        const app = firebase.initializeApp({
+          apiKey: cfg.apiKey,
+          databaseURL: cfg.databaseURL,
+          projectId: cfg.projectId
+        });
+
+        const db = firebase.database(app);
+        firebaseDbRef = db.ref('tomeet_monitoring_data');
+
+        // Monitor status koneksi internet ke Firebase
+        db.ref('.info/connected').on('value', snap => {
+          if (snap.val() === true) {
+            isCloudConnected = true;
+            updateSyncUI('connected', 'Cloud Aktif');
+          } else {
+            isCloudConnected = false;
+            updateSyncUI('local', 'Offline (Lokal)');
+          }
+        });
+
+        // Listener Real-time saat data di Cloud berubah (dari PC maupun HP)
+        firebaseDbRef.on('value', snapshot => {
+          const val = snapshot.val();
+          if (!val) {
+            // Jika database di Cloud masih kosong dan user punya data lokal, unggah otomatis
+            if (uploadLocalIfEmpty && (masterProducts.length > 0 || batches.length > 0)) {
+              firebaseDbRef.set({
+                updatedAt: new Date().toISOString(),
+                masterProducts,
+                batches,
+                logs,
+                movements
+              });
+            }
+            return;
+          }
+
+          isApplyingRemoteUpdate = true;
+          masterProducts = Array.isArray(val.masterProducts)
+            ? val.masterProducts.map(p => ({ ...p, shelfLifeDays: p.shelfLifeDays || 7 }))
+            : [];
+          batches = Array.isArray(val.batches) ? val.batches : [];
+          logs = Array.isArray(val.logs) ? val.logs : [];
+          movements = Array.isArray(val.movements) ? val.movements : [];
+
+          saveLocalCache();
+          renderAll();
+          isApplyingRemoteUpdate = false;
+        }, error => {
+          console.error('Firebase listener error:', error);
+          isCloudConnected = false;
+          updateSyncUI('local', 'Gagal Konek');
+          showToast('Koneksi Firebase ditolak. Periksa Rules atau URL Database.', 'error');
+        });
+
+      } catch (err) {
+        console.error('Firebase init error:', err);
+        isCloudConnected = false;
+        updateSyncUI('local', 'Error Config');
+        showToast('Konfigurasi Firebase tidak valid: ' + err.message, 'error');
+      }
+    }
+
+    function openFirebaseConfigModal() {
+      const cfg = getActiveFirebaseConfig();
+      const statusBox = document.getElementById('firebaseCurrentStatusBox');
+
+      if (cfg) {
+        document.getElementById('fbDatabaseUrl').value = cfg.databaseURL || '';
+        document.getElementById('fbApiKey').value = cfg.apiKey || '';
+        document.getElementById('fbProjectId').value = cfg.projectId || '';
+      }
+
+      if (isCloudConnected) {
+        statusBox.className = 'p-3 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs';
+        statusBox.innerHTML = '<strong>Status: Terhubung ke Cloud!</strong> Setiap penambahan atau pengeluaran stok di PC akan langsung muncul otomatis di HP secara real-time.';
+      } else {
+        statusBox.className = 'p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-800 text-xs';
+        statusBox.innerHTML = '<strong>Status: Mode Lokal (Belum Terhubung).</strong> Masukkan kredensial Firebase Realtime Database di bawah agar data sinkron otomatis antara PC dan HP.';
+      }
+
+      document.getElementById('firebaseModal').classList.remove('hidden');
+      document.getElementById('firebaseModal').classList.add('flex');
+    }
+
+    function closeFirebaseConfigModal() {
+      document.getElementById('firebaseModal').classList.add('hidden');
+      document.getElementById('firebaseModal').classList.remove('flex');
+    }
+
+    function handleSaveFirebaseConfig(e) {
+      e.preventDefault();
+      const databaseURL = document.getElementById('fbDatabaseUrl').value.trim().replace(/\/$/, '');
+      const apiKey = document.getElementById('fbApiKey').value.trim();
+      const projectId = document.getElementById('fbProjectId').value.trim();
+      const uploadLocal = document.getElementById('fbUploadLocalCheck').checked;
+
+      localStorage.setItem(STORAGE_KEYS.FB_CONFIG, JSON.stringify({ databaseURL, apiKey, projectId }));
+      closeFirebaseConfigModal();
+      initFirebaseSync(uploadLocal);
+      showToast('Menghubungkan ke Firebase Realtime Database...');
+    }
+
+    function disconnectFirebase() {
+      if (!confirm('Putuskan sinkronisasi Cloud dan kembali ke Mode Lokal browser?')) return;
+      if (firebaseDbRef) {
+        firebaseDbRef.off();
+        firebaseDbRef = null;
+      }
+      localStorage.removeItem(STORAGE_KEYS.FB_CONFIG);
+      isCloudConnected = false;
+      updateSyncUI('local', 'Mode Lokal');
+      closeFirebaseConfigModal();
+      showToast('Koneksi Cloud diputuskan.', 'warning');
     }
 
     function recordMovement({ productId, batchId, type, qty, time, note }) {
@@ -612,14 +863,13 @@
         id: 'MOV-' + Date.now().toString().slice(-5) + Math.floor(Math.random() * 90 + 10),
         productId,
         batchId,
-        type, // 'IN', 'OUT', 'ADJUST'
+        type,
         qty,
         time: time || new Date().toISOString(),
         note
       });
     }
 
-    // Format Tanggal & Waktu
     function formatDateTime(isoString) {
       const d = new Date(isoString);
       return d.toLocaleString('id-ID', {
@@ -1409,7 +1659,6 @@
         return { product: p, totalIn, totalOut, currentStock, expiredStock };
       });
 
-      // Top 3 Fast Moving (berdasarkan totalOut > 0)
       const topFast = [...metrics]
         .filter(m => m.totalOut > 0)
         .sort((a, b) => b.totalOut - a.totalOut)
@@ -1424,7 +1673,6 @@
           `).join('')
         : `<p class="text-slate-400 italic">Belum ada barang keluar 30 hari terakhir.</p>`;
 
-      // Top 3 Slow Moving (punya stok aktif tapi pengeluaran paling sedikit / 0)
       const topSlow = [...metrics]
         .filter(m => m.currentStock > 0)
         .sort((a, b) => a.totalOut - b.totalOut || b.currentStock - a.currentStock)
@@ -1439,7 +1687,6 @@
           `).join('')
         : `<p class="text-slate-400 italic">Belum ada stok mengendap.</p>`;
 
-      // Top 3 Expired Risk (punya stok expired aktif)
       const topWaste = [...metrics]
         .filter(m => m.expiredStock > 0)
         .sort((a, b) => b.expiredStock - a.expiredStock)
@@ -1488,7 +1735,6 @@
       const validStock = getAvailableStock(productId, true);
       const expiredStock = currentStock - validStock;
 
-      // Hitung Rasio Keluar & Klasifikasi Kecepatan
       const denominator = totalIn > 0 ? totalIn : (totalOut + currentStock);
       const ratio = denominator > 0 ? Math.round((totalOut / denominator) * 100) : 0;
 
@@ -1514,7 +1760,6 @@
       document.getElementById('movStatRatio').textContent = `${ratio}%`;
       document.getElementById('movStatCurrent').textContent = `${currentStock} ${prod.satuan}`;
 
-      // Render Tabel Kartu Stok
       const tbody = document.getElementById('movTableBody');
       if (filteredMovs.length === 0) {
         tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-400 text-sm">Belum ada riwayat pergerakan pada rentang waktu ini.</td></tr>`;
@@ -1554,7 +1799,6 @@
       const ctx = document.getElementById('movementChart');
       if (!ctx || typeof Chart === 'undefined') return;
 
-      // Kelompokkan data per tanggal (YYYY-MM-DD)
       const dailyMap = {};
       [...filteredMovs].reverse().forEach(m => {
         const dayKey = new Date(m.time).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
@@ -1766,6 +2010,7 @@
     lucide.createIcons();
     setDefaultProdTime();
     renderAll();
+    initFirebaseSync(true);
   </script>
 </body>
 </html>
