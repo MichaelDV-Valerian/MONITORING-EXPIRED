@@ -108,7 +108,7 @@
 
       <div class="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm">
         <div class="flex items-center justify-between text-emerald-600 text-xs font-medium">
-          <span>AMAN (&gt; 2 HARI)</span>
+          <span>AMAN</span>
           <i data-lucide="check-circle-2" class="w-4 h-4"></i>
         </div>
         <p id="statAman" class="text-2xl font-bold text-emerald-700 mt-1">0</p>
@@ -117,7 +117,7 @@
 
       <div class="bg-white p-4 rounded-xl border border-amber-200 shadow-sm">
         <div class="flex items-center justify-between text-amber-600 text-xs font-medium">
-          <span>SEGERA EXP (&le; 2 HARI)</span>
+          <span>PRIORITAS</span>
           <i data-lucide="alert-triangle" class="w-4 h-4"></i>
         </div>
         <p id="statWarning" class="text-2xl font-bold text-amber-700 mt-1">0</p>
@@ -249,8 +249,8 @@
           <select id="statusFilter" onchange="renderTable()" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
             <option value="ACTIVE">Semua Stok Aktif</option>
             <option value="ALL">Semua (Termasuk Habis)</option>
-            <option value="SAFE">Aman (&gt; 2 Hari)</option>
-            <option value="WARNING">Segera Exp (&le; 2 Hari)</option>
+            <option value="SAFE">Aman</option>
+            <option value="WARNING">Prioritas</option>
             <option value="EXPIRED">Expired</option>
           </select>
 
@@ -306,7 +306,7 @@
   <!-- ========================================================= -->
   <section id="viewPergerakan" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
-    <!-- Auto-Ranking Top Highlight Cards (Tanpa Tabel 50 Barang) -->
+    <!-- Auto-Ranking Top Highlight Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div class="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm">
         <div class="flex items-center justify-between mb-2">
@@ -516,9 +516,9 @@
     </div>
   </div>
 
-  <!-- Modal Master Produk (Add, Edit, Delete, Custom Shelf Life) -->
+  <!-- Modal Master Produk (Add, Edit, Delete, Shelf Life & Priority Threshold) -->
   <div id="masterModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-2xl max-w-xl w-full shadow-xl border border-slate-200 overflow-hidden">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-xl border border-slate-200 overflow-hidden">
       <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
         <h3 class="font-bold text-slate-900">Master Data Produk</h3>
         <button onclick="closeMasterModal()" class="text-slate-400 hover:text-slate-600">
@@ -534,14 +534,33 @@
           </div>
           <input type="hidden" id="mEditId" />
           <div>
-            <input type="text" id="mNama" required placeholder="Nama Barang / Menu (misal: Roti Tawar Gandum)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none" />
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Nama Barang / Menu</label>
+            <input type="text" id="mNama" required placeholder="Misal: Brownies Panggang" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <input type="text" id="mKategori" required placeholder="Kategori (misal: Bakery)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none" />
-            <input type="text" id="mSatuan" required placeholder="Satuan (Pcs / Box)" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none" />
-            <div class="relative">
-              <input type="number" id="mShelfLife" min="1" max="365" value="7" required title="Masa Simpan (Hari)" class="w-full rounded-lg border border-slate-300 pl-3 pr-12 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none" />
-              <span class="absolute right-3 top-2 text-xs text-slate-400">Hari</span>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Kategori</label>
+              <input type="text" id="mKategori" required placeholder="Misal: WIP / Bakery" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Satuan</label>
+              <input type="text" id="mSatuan" required placeholder="Misal: PCS / BOX" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none" />
+            </div>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Masa Simpan Total</label>
+              <div class="relative">
+                <input type="number" id="mShelfLife" min="1" max="365" value="7" required title="Masa Simpan (Hari)" class="w-full rounded-lg border border-slate-300 pl-3 pr-12 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none" />
+                <span class="absolute right-3 top-2 text-xs text-slate-400">Hari</span>
+              </div>
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Masuk Prioritas Sebelum Exp (Opsional)</label>
+              <div class="relative">
+                <input type="number" id="mPriorityDays" min="1" max="365" placeholder="Default: 7" title="Jumlah hari sebelum expired untuk masuk status Prioritas (Kosongkan = 7 hari)" class="w-full rounded-lg border border-slate-300 pl-3 pr-12 py-2 text-sm bg-white focus:ring-2 focus:ring-amber-500 outline-none" />
+                <span class="absolute right-3 top-2 text-xs text-slate-400">Hari</span>
+              </div>
             </div>
           </div>
           <button type="submit" id="masterSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition">
@@ -645,6 +664,8 @@
       projectId: "tomeet-monitoring-expired"
     };
 
+    const DEFAULT_PRIORITY_DAYS = 7;
+
     // State Management dengan LocalStorage + Firebase Realtime Database
     const STORAGE_KEYS = {
       MASTER: 'tomeet_master_v2',
@@ -659,7 +680,16 @@
     let logs = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOGS)) || [];
     let movements = JSON.parse(localStorage.getItem(STORAGE_KEYS.MOVEMENTS)) || [];
 
-    masterProducts = masterProducts.map(p => ({ ...p, shelfLifeDays: Number(p.shelfLifeDays) || 7 }));
+    function normalizeMasterProduct(p) {
+      const parsedPriority = parseInt(p.priorityDays, 10);
+      return {
+        ...p,
+        shelfLifeDays: Number(p.shelfLifeDays) || 7,
+        priorityDays: (!isNaN(parsedPriority) && parsedPriority > 0) ? parsedPriority : null
+      };
+    }
+
+    masterProducts = masterProducts.map(normalizeMasterProduct);
 
     if (movements.length === 0 && batches.length > 0) {
       batches.forEach(b => {
@@ -681,6 +711,17 @@
     let firebaseDbRef = null;
     let isCloudConnected = false;
     let isApplyingRemoteUpdate = false;
+
+    // Helper mendapatkan batas hari prioritas produk (default 7 hari jika belum disetting)
+    function getProductPriorityThreshold(productOrId) {
+      const prod = typeof productOrId === 'string'
+        ? masterProducts.find(p => p.id === productOrId)
+        : productOrId;
+      if (prod && prod.priorityDays && Number(prod.priorityDays) > 0) {
+        return Number(prod.priorityDays);
+      }
+      return DEFAULT_PRIORITY_DAYS;
+    }
 
     // Fungsi menyelaraskan expTime seluruh batch aktif dengan shelfLifeDays terbaru di Master Produk
     function syncBatchesWithMaster(silent = true) {
@@ -828,13 +869,12 @@
 
           isApplyingRemoteUpdate = true;
           masterProducts = Array.isArray(val.masterProducts)
-            ? val.masterProducts.map(p => ({ ...p, shelfLifeDays: Number(p.shelfLifeDays) || 7 }))
+            ? val.masterProducts.map(normalizeMasterProduct)
             : [];
           batches = Array.isArray(val.batches) ? val.batches : [];
           logs = Array.isArray(val.logs) ? val.logs : [];
           movements = Array.isArray(val.movements) ? val.movements : [];
 
-          // Pastikan semua batch aktif langsung selaras dengan shelfLifeDays terbaru di Master Produk
           const autoFixed = syncBatchesWithMaster(true);
           saveLocalCache();
           renderAll();
@@ -1056,13 +1096,14 @@
           'Kategori': p.kategori,
           'Satuan': p.satuan,
           'Masa Simpan (Hari)': p.shelfLifeDays || 7,
+          'Batas Prioritas (Hari)': getProductPriorityThreshold(p),
           'Total Stok Aktif': getAvailableStock(p.id, false),
           'Stok Layak (Non-Exp)': getAvailableStock(p.id, true)
         }));
         const wsMaster = XLSX.utils.json_to_sheet(masterRows.length > 0 ? masterRows : [{ Info: 'Belum ada master produk' }]);
         wsMaster['!cols'] = [
           { wch: 5 }, { wch: 12 }, { wch: 28 }, { wch: 16 },
-          { wch: 10 }, { wch: 18 }, { wch: 16 }, { wch: 20 }
+          { wch: 10 }, { wch: 18 }, { wch: 22 }, { wch: 16 }, { wch: 20 }
         ];
         XLSX.utils.book_append_sheet(wb, wsMaster, 'Master Produk');
 
@@ -1152,7 +1193,7 @@
             event.target.value = '';
             return;
           }
-          masterProducts = parsed.masterProducts.map(p => ({ ...p, shelfLifeDays: Number(p.shelfLifeDays) || 7 }));
+          masterProducts = parsed.masterProducts.map(normalizeMasterProduct);
           batches = parsed.batches;
           logs = Array.isArray(parsed.logs) ? parsed.logs : [];
           movements = Array.isArray(parsed.movements) ? parsed.movements : [];
@@ -1172,7 +1213,7 @@
     }
 
     // ==========================================
-    // MASTER PRODUK (ADD, EDIT, DELETE, SHELF LIFE + AUTO UPDATE BATCH)
+    // MASTER PRODUK (ADD, EDIT, DELETE, SHELF LIFE & PRIORITY THRESHOLD)
     // ==========================================
     function openMasterModal() {
       document.getElementById('masterModal').classList.remove('hidden');
@@ -1190,6 +1231,7 @@
       document.getElementById('masterForm').reset();
       document.getElementById('mEditId').value = '';
       document.getElementById('mShelfLife').value = 7;
+      document.getElementById('mPriorityDays').value = '';
       document.getElementById('masterFormTitle').textContent = 'Tambah Produk Baru (Anti-Duplikasi)';
       document.getElementById('masterSubmitBtn').textContent = 'Simpan ke Master Produk';
       document.getElementById('cancelEditMasterBtn').classList.add('hidden');
@@ -1203,6 +1245,7 @@
       document.getElementById('mKategori').value = prod.kategori;
       document.getElementById('mSatuan').value = prod.satuan;
       document.getElementById('mShelfLife').value = prod.shelfLifeDays || 7;
+      document.getElementById('mPriorityDays').value = prod.priorityDays ? prod.priorityDays : '';
 
       document.getElementById('masterFormTitle').textContent = 'Edit Produk Master (' + prod.id + ')';
       document.getElementById('masterSubmitBtn').textContent = 'Update Produk';
@@ -1240,6 +1283,8 @@
       const kategori = document.getElementById('mKategori').value.trim();
       const satuan = document.getElementById('mSatuan').value.trim();
       const shelfLifeDays = parseInt(document.getElementById('mShelfLife').value, 10) || 7;
+      const rawPriority = parseInt(document.getElementById('mPriorityDays').value, 10);
+      const priorityDays = (!isNaN(rawPriority) && rawPriority > 0) ? rawPriority : null;
 
       const duplicate = masterProducts.some(p => p.nama.toLowerCase() === nama.toLowerCase() && p.id !== editId);
       if (duplicate) {
@@ -1251,7 +1296,7 @@
         const idx = masterProducts.findIndex(p => p.id === editId);
         if (idx !== -1) {
           const oldShelfLife = masterProducts[idx].shelfLifeDays || 7;
-          masterProducts[idx] = { ...masterProducts[idx], nama, kategori, satuan, shelfLifeDays };
+          masterProducts[idx] = { ...masterProducts[idx], nama, kategori, satuan, shelfLifeDays, priorityDays };
 
           const updatedBatchCount = syncBatchesWithMaster(true);
 
@@ -1274,7 +1319,7 @@
           }
 
           if (updatedBatchCount > 0) {
-            showToast(`Produk "${nama}" & ${updatedBatchCount} batch aktif berhasil diperbarui ke ${shelfLifeDays} hari.`);
+            showToast(`Produk "${nama}" & ${updatedBatchCount} batch aktif berhasil diperbarui.`);
           } else {
             showToast(`Produk "${nama}" berhasil diperbarui.`);
           }
@@ -1285,7 +1330,8 @@
           nama,
           kategori,
           satuan,
-          shelfLifeDays
+          shelfLifeDays,
+          priorityDays
         });
         showToast(`Produk "${nama}" berhasil ditambahkan ke Master.`);
       }
@@ -1310,22 +1356,33 @@
         return;
       }
 
-      list.innerHTML = filtered.map(p => `
-        <div class="p-3 flex items-center justify-between gap-2 text-sm bg-white hover:bg-slate-50">
-          <div>
-            <p class="font-medium text-slate-800">${p.nama}</p>
-            <p class="text-xs text-slate-500">${p.kategori} &bull; Satuan: ${p.satuan} &bull; <span class="text-indigo-600 font-medium">Exp: +${p.shelfLifeDays || 7} Hari</span></p>
+      list.innerHTML = filtered.map(p => {
+        const prioDays = getProductPriorityThreshold(p);
+        const prioBadge = p.priorityDays
+          ? `<span class="text-amber-700 font-medium">Prioritas: &le; ${prioDays} Hr (Custom)</span>`
+          : `<span class="text-slate-500">Prioritas: &le; ${prioDays} Hr (Default)</span>`;
+
+        return `
+          <div class="p-3 flex items-center justify-between gap-2 text-sm bg-white hover:bg-slate-50">
+            <div>
+              <p class="font-medium text-slate-800">${p.nama}</p>
+              <p class="text-xs text-slate-500">
+                ${p.kategori} &bull; Satuan: ${p.satuan} &bull; 
+                <span class="text-indigo-600 font-medium">Exp: +${p.shelfLifeDays || 7} Hr</span> &bull; 
+                ${prioBadge}
+              </p>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button type="button" onclick="editMasterProduct('${p.id}')" title="Edit Produk" class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+              <button type="button" onclick="deleteMasterProduct('${p.id}')" title="Hapus Produk" class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
           </div>
-          <div class="flex items-center gap-1 shrink-0">
-            <button type="button" onclick="editMasterProduct('${p.id}')" title="Edit Produk" class="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
-              <i data-lucide="pencil" class="w-4 h-4"></i>
-            </button>
-            <button type="button" onclick="deleteMasterProduct('${p.id}')" title="Hapus Produk" class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
-              <i data-lucide="trash-2" class="w-4 h-4"></i>
-            </button>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
       lucide.createIcons();
     }
 
@@ -1833,8 +1890,9 @@
         badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200';
       }
 
+      const prioDays = getProductPriorityThreshold(prod);
       document.getElementById('movItemName').textContent = prod.nama;
-      document.getElementById('movItemMeta').textContent = `Kategori: ${prod.kategori} • Satuan: ${prod.satuan} • Masa Simpan: ${prod.shelfLifeDays || 7} Hari`;
+      document.getElementById('movItemMeta').textContent = `Kategori: ${prod.kategori} • Satuan: ${prod.satuan} • Masa Simpan: ${prod.shelfLifeDays || 7} Hari • Prioritas: ≤ ${prioDays} Hari`;
       document.getElementById('movStatIn').textContent = `${totalIn} ${prod.satuan}`;
       document.getElementById('movStatOut').textContent = `${totalOut} ${prod.satuan}`;
       document.getElementById('movStatRatio').textContent = `${ratio}%`;
@@ -1955,10 +2013,13 @@
       const hoursLeft = Math.floor(diffHours % 24);
       const timeText = daysLeft > 0 ? `${daysLeft} hari ${hoursLeft} jam` : `${hoursLeft} jam lagi`;
 
-      if (diffDays <= 2) {
+      // Menggunakan batas hari prioritas per produk (default 7 hari jika tidak disetting)
+      const priorityThresholdDays = getProductPriorityThreshold(batch.productId);
+
+      if (diffDays < priorityThresholdDays) {
         return {
           code: 'WARNING',
-          label: 'Segera Exp',
+          label: 'Prioritas',
           badge: 'bg-amber-100 text-amber-800 border border-amber-200',
           rowClass: 'bg-amber-50/40',
           timeText
