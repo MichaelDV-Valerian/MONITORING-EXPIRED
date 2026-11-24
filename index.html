@@ -39,7 +39,7 @@
               <span id="syncLabel">Mode Lokal</span>
             </span>
           </div>
-          <p class="text-[11px] sm:text-xs text-slate-500 hidden sm:block">Sistem Monitoring Hasil Produksi &amp; FEFO</p>
+          <p class="text-[11px] sm:text-xs text-slate-500 hidden sm:block">Sistem Monitoring Hasil Produksi &amp; Barang Jangka Panjang</p>
         </div>
       </div>
 
@@ -68,19 +68,23 @@
         </button>
         <input type="file" id="importFileInput" accept=".json" onchange="importBackupJSON(event)" class="hidden" />
 
-        <button onclick="openMasterModal()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition">
+        <button id="navMasterBtn" onclick="openContextualMasterModal()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition">
           <i data-lucide="database" class="w-4 h-4"></i>
-          <span>Master Produk</span>
+          <span id="navMasterBtnLabel">Master Produksi</span>
         </button>
       </div>
     </div>
 
     <!-- Tab Navigation Bar -->
-    <div class="bg-slate-50/80 border-t border-slate-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1">
+    <div class="bg-slate-50/80 border-t border-slate-200 overflow-x-auto">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1 whitespace-nowrap">
         <button id="tabBtnOperasional" onclick="switchTab('operasional')" class="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 transition">
           <i data-lucide="clipboard-list" class="w-4 h-4"></i>
-          <span>Operasional &amp; FEFO</span>
+          <span>Produksi &amp; FEFO</span>
+        </button>
+        <button id="tabBtnLongTerm" onclick="switchTab('longterm')" class="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition">
+          <i data-lucide="package-check" class="w-4 h-4"></i>
+          <span>Barang Jangka Panjang</span>
         </button>
         <button id="tabBtnPergerakan" onclick="switchTab('pergerakan')" class="inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition">
           <i data-lucide="activity" class="w-4 h-4"></i>
@@ -91,7 +95,7 @@
   </nav>
 
   <!-- ========================================================= -->
-  <!-- VIEW 1: OPERASIONAL & FEFO (HALAMAN UTAMA)                -->
+  <!-- VIEW 1: PRODUKSI & FEFO (HALAMAN UTAMA)                   -->
   <!-- ========================================================= -->
   <main id="viewOperasional" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
@@ -99,7 +103,7 @@
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <div class="flex items-center justify-between text-slate-500 text-xs font-medium">
-          <span>TOTAL STOK AKTIF</span>
+          <span>TOTAL STOK PRODUKSI</span>
           <i data-lucide="layers" class="w-4 h-4 text-indigo-500"></i>
         </div>
         <p id="statTotalStok" class="text-2xl font-bold text-slate-900 mt-1">0</p>
@@ -146,9 +150,9 @@
 
         <form id="formProduksi" onsubmit="handleInputProduksi(event)" class="space-y-4">
           <div class="relative">
-            <label class="block text-xs font-medium text-slate-600 mb-1">Cari &amp; Pilih Nama Barang</label>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Cari &amp; Pilih Nama Barang Produksi</label>
             <div class="relative">
-              <input type="text" id="prodSearchInput" autocomplete="off" placeholder="Ketik nama barang..." 
+              <input type="text" id="prodSearchInput" autocomplete="off" placeholder="Ketik nama barang produksi..." 
                 onfocus="openSearchDropdown('prod')" oninput="filterSearchDropdown('prod')"
                 class="w-full rounded-lg border border-slate-300 pl-3 pr-9 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white" />
               <button type="button" onclick="clearSearchSelection('prod')" id="prodClearBtn" class="hidden absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600">
@@ -187,7 +191,7 @@
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
-            <h2 class="font-semibold text-slate-900">Pengeluaran Barang (Otomatis FEFO)</h2>
+            <h2 class="font-semibold text-slate-900">Pengeluaran Produksi (Otomatis FEFO)</h2>
           </div>
           <span class="text-[11px] font-medium bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md">First Expired, First Out</span>
         </div>
@@ -291,7 +295,7 @@
     <!-- Log Pengeluaran -->
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
       <div class="p-4 border-b border-slate-200 flex items-center justify-between">
-        <h3 class="font-semibold text-sm text-slate-800">Riwayat Pengeluaran &amp; Koreksi Stok Terbaru</h3>
+        <h3 class="font-semibold text-sm text-slate-800">Riwayat Pengeluaran &amp; Koreksi Stok Produksi</h3>
         <button onclick="clearAllData()" class="text-xs text-rose-600 hover:underline">Reset Semua Data</button>
       </div>
       <div id="logContainer" class="p-4 text-xs text-slate-600 space-y-2 max-h-48 overflow-y-auto">
@@ -302,7 +306,215 @@
   </main>
 
   <!-- ========================================================= -->
-  <!-- VIEW 2: PERGERAKAN BARANG & KARTU STOK (TAB BARU)         -->
+  <!-- VIEW 2: BARANG JANGKA PANJANG (DATA TERPISAH)             -->
+  <!-- ========================================================= -->
+  <section id="viewLongTerm" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+    <!-- Summary Cards Jangka Panjang -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between text-slate-500 text-xs font-medium">
+          <span>STOK JANGKA PANJANG</span>
+          <i data-lucide="package" class="w-4 h-4 text-teal-600"></i>
+        </div>
+        <p id="ltStatTotalStok" class="text-2xl font-bold text-slate-900 mt-1">0</p>
+        <p class="text-xs text-slate-400 mt-0.5">Dari semua batch aktif</p>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-emerald-200 shadow-sm">
+        <div class="flex items-center justify-between text-emerald-600 text-xs font-medium">
+          <span>AMAN</span>
+          <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+        </div>
+        <p id="ltStatAman" class="text-2xl font-bold text-emerald-700 mt-1">0</p>
+        <p class="text-xs text-slate-400 mt-0.5">Batch kondisi baik</p>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-amber-200 shadow-sm">
+        <div class="flex items-center justify-between text-amber-600 text-xs font-medium">
+          <span>PRIORITAS</span>
+          <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+        </div>
+        <p id="ltStatWarning" class="text-2xl font-bold text-amber-700 mt-1">0</p>
+        <p class="text-xs text-slate-400 mt-0.5">Default &lt; 30 hari exp</p>
+      </div>
+
+      <div class="bg-white p-4 rounded-xl border border-rose-200 shadow-sm">
+        <div class="flex items-center justify-between text-rose-600 text-xs font-medium">
+          <span>EXPIRED</span>
+          <i data-lucide="x-octagon" class="w-4 h-4"></i>
+        </div>
+        <p id="ltStatExpired" class="text-2xl font-bold text-rose-700 mt-1">0</p>
+        <p class="text-xs text-slate-400 mt-0.5">Melewati tanggal exp</p>
+      </div>
+    </div>
+
+    <!-- Action Forms: Input Barang Jangka Panjang & Pengeluaran Barang Jangka Panjang -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      
+      <!-- Form 1: Input Barang Jangka Panjang (Nama Produk, Qty, Tanggal Exp) -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
+            <h2 class="font-semibold text-slate-900">Input Barang Jangka Panjang (Masuk)</h2>
+          </div>
+          <button type="button" onclick="openLtMasterModal()" class="text-xs font-semibold text-teal-700 hover:underline">+ Master Jangka Panjang</button>
+        </div>
+
+        <form id="formLtMasuk" onsubmit="handleInputLongTerm(event)" class="space-y-4">
+          <div class="relative">
+            <label class="block text-xs font-medium text-slate-600 mb-1">Nama Produk (Master Jangka Panjang)</label>
+            <div class="relative">
+              <input type="text" id="ltInSearchInput" autocomplete="off" placeholder="Ketik nama produk jangka panjang..." 
+                onfocus="openSearchDropdown('ltIn')" oninput="filterSearchDropdown('ltIn')"
+                class="w-full rounded-lg border border-slate-300 pl-3 pr-9 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none bg-white" />
+              <button type="button" onclick="clearSearchSelection('ltIn')" id="ltInClearBtn" class="hidden absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x-circle" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <input type="hidden" id="ltInSelectId" required />
+            <div id="ltInDropdownList" class="hidden absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-52 overflow-y-auto divide-y divide-slate-100"></div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Quantity Masuk</label>
+              <input type="number" id="ltInQty" min="1" required placeholder="Contoh: 24" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Tanggal Expired</label>
+              <input type="date" id="ltInExpDate" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+            </div>
+          </div>
+
+          <div class="bg-teal-50/70 rounded-lg p-3 border border-teal-200/80 flex items-center justify-between text-xs text-teal-800">
+            <span>Batas Prioritas Produk Ini:</span>
+            <span id="ltPreviewPriorityInfo" class="font-semibold">30 Hari sebelum Expired (Default)</span>
+          </div>
+
+          <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition flex items-center justify-center gap-2">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Simpan Stok Jangka Panjang</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Form 2: Pengeluaran Barang Jangka Panjang (FEFO) -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+            <h2 class="font-semibold text-slate-900">Pengeluaran Jangka Panjang (Otomatis FEFO)</h2>
+          </div>
+          <span class="text-[11px] font-medium bg-teal-50 text-teal-700 px-2 py-0.5 rounded-md">First Expired, First Out</span>
+        </div>
+
+        <form id="formLtKeluar" onsubmit="handlePengeluaranLongTerm(event)" class="space-y-4">
+          <div class="relative">
+            <label class="block text-xs font-medium text-slate-600 mb-1">Cari &amp; Pilih Barang Keluar</label>
+            <div class="relative">
+              <input type="text" id="ltOutSearchInput" autocomplete="off" placeholder="Ketik nama barang yang keluar..." 
+                onfocus="openSearchDropdown('ltOut')" oninput="filterSearchDropdown('ltOut')"
+                class="w-full rounded-lg border border-slate-300 pl-3 pr-9 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none bg-white" />
+              <button type="button" onclick="clearSearchSelection('ltOut')" id="ltOutClearBtn" class="hidden absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600">
+                <i data-lucide="x-circle" class="w-4 h-4"></i>
+              </button>
+            </div>
+            <input type="hidden" id="ltOutSelectId" required />
+            <div id="ltOutDropdownList" class="hidden absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-52 overflow-y-auto divide-y divide-slate-100"></div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Quantity Keluar</label>
+              <input type="number" id="ltOutQty" min="1" required placeholder="Contoh: 5" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Total Stok Tersedia</label>
+              <div id="ltAvailableStockBox" class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+                0
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between bg-amber-50/70 rounded-lg p-3 border border-amber-200/80 text-xs text-amber-800">
+            <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="ltSkipExpiredCheck" checked class="rounded border-amber-400 text-teal-600 focus:ring-teal-500" />
+              <span>Lewati batch yang sudah <strong>EXPIRED</strong> (Hanya kirim barang layak)</span>
+            </label>
+          </div>
+
+          <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition flex items-center justify-center gap-2">
+            <i data-lucide="arrow-up-right" class="w-4 h-4"></i>
+            <span>Proses Barang Keluar</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Main Monitoring Table Jangka Panjang -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="font-semibold text-slate-900">Tabel Stok Barang Jangka Panjang</h2>
+          <p class="text-xs text-slate-500">Diurutkan otomatis berdasarkan tanggal expired terdekat (FEFO)</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <input type="text" id="ltSearchInput" onkeyup="renderLongTermTable()" placeholder="Cari nama / kategori / ID..." class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+          
+          <select id="ltStatusFilter" onchange="renderLongTermTable()" class="rounded-lg border border-slate-300 px-3 py-1.5 text-sm bg-white focus:ring-2 focus:ring-teal-500 outline-none">
+            <option value="ACTIVE">Semua Stok Aktif</option>
+            <option value="ALL">Semua (Termasuk Habis)</option>
+            <option value="SAFE">Aman</option>
+            <option value="WARNING">Prioritas</option>
+            <option value="EXPIRED">Expired</option>
+          </select>
+
+          <button onclick="exportLongTermExcel()" title="Export tabel barang jangka panjang ke Excel" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition">
+            <i data-lucide="sheet" class="w-3.5 h-3.5"></i>
+            <span>Export Tabel Ini</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+              <th class="py-3 px-4">ID Batch</th>
+              <th class="py-3 px-4">Nama Produk</th>
+              <th class="py-3 px-4">Kategori</th>
+              <th class="py-3 px-4">Sisa / Awal</th>
+              <th class="py-3 px-4">Tanggal Input</th>
+              <th class="py-3 px-4">Tanggal Expired</th>
+              <th class="py-3 px-4">Sisa Waktu</th>
+              <th class="py-3 px-4">Status</th>
+              <th class="py-3 px-4 text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody id="ltBatchTableBody" class="divide-y divide-slate-100 text-sm">
+            <!-- Rows injected via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Log Pengeluaran Jangka Panjang -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="font-semibold text-sm text-slate-800">Riwayat Pengeluaran &amp; Koreksi Barang Jangka Panjang</h3>
+      </div>
+      <div id="ltLogContainer" class="p-4 text-xs text-slate-600 space-y-2 max-h-48 overflow-y-auto">
+        <p class="text-slate-400 italic">Belum ada riwayat aktivitas barang jangka panjang.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ========================================================= -->
+  <!-- VIEW 3: PERGERAKAN BARANG & KARTU STOK (PRODUKSI)         -->
   <!-- ========================================================= -->
   <section id="viewPergerakan" class="hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
@@ -352,7 +564,7 @@
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
       <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div class="flex-1 relative">
-          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Cari Barang untuk Melihat Pergerakan Keluar / Masuk</label>
+          <label class="block text-xs font-semibold text-slate-700 uppercase mb-1.5">Cari Barang Produksi untuk Melihat Pergerakan Keluar / Masuk</label>
           <div class="relative">
             <input type="text" id="movSearchInput" autocomplete="off" placeholder="Ketik nama barang / menu..." 
               onfocus="openSearchDropdown('mov')" oninput="filterSearchDropdown('mov')"
@@ -516,11 +728,13 @@
     </div>
   </div>
 
-  <!-- Modal Master Produk (Add, Edit, Delete, Shelf Life & Priority Threshold) -->
+  <!-- ========================================================= -->
+  <!-- MODAL MASTER PRODUK PRODUKSI                              -->
+  <!-- ========================================================= -->
   <div id="masterModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
     <div class="bg-white rounded-2xl max-w-2xl w-full shadow-xl border border-slate-200 overflow-hidden">
       <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-        <h3 class="font-bold text-slate-900">Master Data Produk</h3>
+        <h3 class="font-bold text-slate-900">Master Produk Produksi</h3>
         <button onclick="closeMasterModal()" class="text-slate-400 hover:text-slate-600">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
@@ -529,12 +743,12 @@
       <div class="p-6 space-y-5">
         <form id="masterForm" onsubmit="handleSaveMaster(event)" class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
           <div class="flex items-center justify-between">
-            <p id="masterFormTitle" class="text-xs font-semibold text-slate-700 uppercase">Tambah Produk Baru (Anti-Duplikasi)</p>
+            <p id="masterFormTitle" class="text-xs font-semibold text-slate-700 uppercase">Tambah Produk Produksi (Anti-Duplikasi)</p>
             <button type="button" id="cancelEditMasterBtn" onclick="resetMasterForm()" class="hidden text-xs text-rose-600 hover:underline">Batal Edit</button>
           </div>
           <input type="hidden" id="mEditId" />
           <div>
-            <label class="block text-[11px] font-medium text-slate-600 mb-1">Nama Barang / Menu</label>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Nama Barang / Menu Produksi</label>
             <input type="text" id="mNama" required placeholder="Misal: Brownies Panggang" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-indigo-500 outline-none" />
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -564,16 +778,77 @@
             </div>
           </div>
           <button type="submit" id="masterSubmitBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg text-sm transition">
-            Simpan ke Master Produk
+            Simpan ke Master Produksi
           </button>
         </form>
 
         <div>
           <div class="flex items-center justify-between mb-2">
-            <p class="text-xs font-semibold text-slate-500 uppercase">Daftar Produk Terdaftar (<span id="masterCount">0</span>)</p>
+            <p class="text-xs font-semibold text-slate-500 uppercase">Daftar Produk Produksi (<span id="masterCount">0</span>)</p>
             <input type="text" id="masterSearchBox" oninput="renderMasterList()" placeholder="Filter master..." class="text-xs border border-slate-300 rounded-md px-2 py-1 outline-none focus:ring-1 focus:ring-indigo-500" />
           </div>
           <div id="masterList" class="divide-y divide-slate-100 max-h-56 overflow-y-auto border border-slate-200 rounded-lg">
+            <!-- Master items -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL MASTER PRODUK JANGKA PANJANG (JENIS BERBEDA)        -->
+  <!-- ========================================================= -->
+  <div id="ltMasterModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-2xl w-full shadow-xl border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-teal-50/50">
+        <div>
+          <h3 class="font-bold text-slate-900">Master Produk Jangka Panjang</h3>
+          <p class="text-[11px] text-slate-500">Khusus bahan/produk dengan tanggal expired kemasan/pabrik (terpisah dari produksi)</p>
+        </div>
+        <button onclick="closeLtMasterModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-5">
+        <form id="ltMasterForm" onsubmit="handleSaveLtMaster(event)" class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div class="flex items-center justify-between">
+            <p id="ltMasterFormTitle" class="text-xs font-semibold text-teal-800 uppercase">Tambah Produk Jangka Panjang</p>
+            <button type="button" id="cancelEditLtMasterBtn" onclick="resetLtMasterForm()" class="hidden text-xs text-rose-600 hover:underline">Batal Edit</button>
+          </div>
+          <input type="hidden" id="ltEditId" />
+          <div>
+            <label class="block text-[11px] font-medium text-slate-600 mb-1">Nama Produk Jangka Panjang</label>
+            <input type="text" id="ltNama" required placeholder="Misal: Sirup Vanilla / Susu UHT / Keju Cheddar" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-teal-500 outline-none" />
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Kategori</label>
+              <input type="text" id="ltKategori" required placeholder="Misal: Bahan Kering / Dairy" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-teal-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Satuan</label>
+              <input type="text" id="ltSatuan" required placeholder="Misal: BOTOL / KARTON / PCS" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-teal-500 outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-600 mb-1">Masuk Prioritas (Opsional)</label>
+              <div class="relative">
+                <input type="number" id="ltPriorityDays" min="1" max="365" placeholder="Default: 30" title="Jumlah hari sebelum expired untuk masuk status Prioritas (Kosongkan = 30 hari)" class="w-full rounded-lg border border-slate-300 pl-3 pr-12 py-2 text-sm bg-white focus:ring-2 focus:ring-amber-500 outline-none" />
+                <span class="absolute right-3 top-2 text-xs text-slate-400">Hari</span>
+              </div>
+            </div>
+          </div>
+          <button type="submit" id="ltMasterSubmitBtn" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 rounded-lg text-sm transition">
+            Simpan ke Master Jangka Panjang
+          </button>
+        </form>
+
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-xs font-semibold text-slate-500 uppercase">Daftar Produk Jangka Panjang (<span id="ltMasterCount">0</span>)</p>
+            <input type="text" id="ltMasterSearchBox" oninput="renderLtMasterList()" placeholder="Filter master..." class="text-xs border border-slate-300 rounded-md px-2 py-1 outline-none focus:ring-1 focus:ring-teal-500" />
+          </div>
+          <div id="ltMasterList" class="divide-y divide-slate-100 max-h-56 overflow-y-auto border border-slate-200 rounded-lg">
             <!-- Master items -->
           </div>
         </div>
@@ -614,6 +889,44 @@
         <div class="flex justify-end gap-2 pt-2">
           <button type="button" onclick="closeEditBatchModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
           <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg">Simpan Koreksi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Edit Batch Jangka Panjang -->
+  <div id="editLtBatchModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-xl border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <h3 class="font-bold text-slate-900">Koreksi Stok Jangka Panjang (<span id="ebLtTitleId" class="font-mono text-teal-600"></span>)</h3>
+        <button onclick="closeEditLtBatchModal()" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleSaveEditLtBatch(event)" class="p-6 space-y-4">
+        <input type="hidden" id="ebLtBatchId" />
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Nama Produk</label>
+          <input type="text" id="ebLtProductName" disabled class="w-full rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-600" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Qty Awal Masuk</label>
+            <input type="number" id="ebLtQtyAwal" min="1" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-600 mb-1">Qty Sisa Saat Ini</label>
+            <input type="number" id="ebLtQtySisa" min="0" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Tanggal Expired</label>
+          <input type="date" id="ebLtExpDate" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 outline-none" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" onclick="closeEditLtBatchModal()" class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
+          <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg">Simpan Koreksi</button>
         </div>
       </form>
     </div>
@@ -664,7 +977,8 @@
       projectId: "tomeet-monitoring-expired"
     };
 
-    const DEFAULT_PRIORITY_DAYS = 7;
+    const DEFAULT_PROD_PRIORITY_DAYS = 7;
+    const DEFAULT_LT_PRIORITY_DAYS = 30;
 
     // State Management dengan LocalStorage + Firebase Realtime Database
     const STORAGE_KEYS = {
@@ -672,6 +986,9 @@
       BATCHES: 'tomeet_batches_v2',
       LOGS: 'tomeet_logs_v2',
       MOVEMENTS: 'tomeet_movements_v1',
+      LT_MASTER: 'tomeet_lt_master_v1',
+      LT_BATCHES: 'tomeet_lt_batches_v1',
+      LT_LOGS: 'tomeet_lt_logs_v1',
       FB_CONFIG: 'tomeet_firebase_cfg_v1'
     };
 
@@ -679,6 +996,11 @@
     let batches = JSON.parse(localStorage.getItem(STORAGE_KEYS.BATCHES)) || [];
     let logs = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOGS)) || [];
     let movements = JSON.parse(localStorage.getItem(STORAGE_KEYS.MOVEMENTS)) || [];
+
+    // State terpisah untuk Barang Jangka Panjang
+    let ltMasterProducts = JSON.parse(localStorage.getItem(STORAGE_KEYS.LT_MASTER)) || [];
+    let ltBatches = JSON.parse(localStorage.getItem(STORAGE_KEYS.LT_BATCHES)) || [];
+    let ltLogs = JSON.parse(localStorage.getItem(STORAGE_KEYS.LT_LOGS)) || [];
 
     function normalizeMasterProduct(p) {
       const parsedPriority = parseInt(p.priorityDays, 10);
@@ -689,7 +1011,16 @@
       };
     }
 
+    function normalizeLtMasterProduct(p) {
+      const parsedPriority = parseInt(p.priorityDays, 10);
+      return {
+        ...p,
+        priorityDays: (!isNaN(parsedPriority) && parsedPriority > 0) ? parsedPriority : null
+      };
+    }
+
     masterProducts = masterProducts.map(normalizeMasterProduct);
+    ltMasterProducts = ltMasterProducts.map(normalizeLtMasterProduct);
 
     if (movements.length === 0 && batches.length > 0) {
       batches.forEach(b => {
@@ -706,13 +1037,14 @@
       localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify(movements));
     }
 
+    let currentActiveTab = 'operasional';
     let pendingDeduction = null;
     let movementChartInstance = null;
     let firebaseDbRef = null;
     let isCloudConnected = false;
     let isApplyingRemoteUpdate = false;
 
-    // Helper mendapatkan batas hari prioritas produk (default 7 hari jika belum disetting)
+    // Helper mendapatkan batas hari prioritas produk produksi (default 7 hari)
     function getProductPriorityThreshold(productOrId) {
       const prod = typeof productOrId === 'string'
         ? masterProducts.find(p => p.id === productOrId)
@@ -720,10 +1052,20 @@
       if (prod && prod.priorityDays && Number(prod.priorityDays) > 0) {
         return Number(prod.priorityDays);
       }
-      return DEFAULT_PRIORITY_DAYS;
+      return DEFAULT_PROD_PRIORITY_DAYS;
     }
 
-    // Fungsi menyelaraskan expTime seluruh batch aktif dengan shelfLifeDays terbaru di Master Produk
+    // Helper mendapatkan batas hari prioritas barang jangka panjang (default 30 hari)
+    function getLtPriorityThreshold(productOrId) {
+      const prod = typeof productOrId === 'string'
+        ? ltMasterProducts.find(p => p.id === productOrId)
+        : productOrId;
+      if (prod && prod.priorityDays && Number(prod.priorityDays) > 0) {
+        return Number(prod.priorityDays);
+      }
+      return DEFAULT_LT_PRIORITY_DAYS;
+    }
+
     function syncBatchesWithMaster(silent = true) {
       if (masterProducts.length === 0 || batches.length === 0) return 0;
       const masterMap = {};
@@ -769,6 +1111,9 @@
       localStorage.setItem(STORAGE_KEYS.BATCHES, JSON.stringify(batches));
       localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(logs));
       localStorage.setItem(STORAGE_KEYS.MOVEMENTS, JSON.stringify(movements));
+      localStorage.setItem(STORAGE_KEYS.LT_MASTER, JSON.stringify(ltMasterProducts));
+      localStorage.setItem(STORAGE_KEYS.LT_BATCHES, JSON.stringify(ltBatches));
+      localStorage.setItem(STORAGE_KEYS.LT_LOGS, JSON.stringify(ltLogs));
     }
 
     function saveData() {
@@ -779,7 +1124,10 @@
           masterProducts,
           batches,
           logs,
-          movements
+          movements,
+          ltMasterProducts,
+          ltBatches,
+          ltLogs
         }).catch(err => {
           console.error('Firebase write error:', err);
           showToast('Gagal menyinkronkan ke Cloud: ' + err.message, 'error');
@@ -854,14 +1202,17 @@
         firebaseDbRef.on('value', snapshot => {
           const val = snapshot.val();
           if (!val) {
-            if (uploadLocalIfEmpty && (masterProducts.length > 0 || batches.length > 0)) {
+            if (uploadLocalIfEmpty && (masterProducts.length > 0 || batches.length > 0 || ltMasterProducts.length > 0 || ltBatches.length > 0)) {
               syncBatchesWithMaster(true);
               firebaseDbRef.set({
                 updatedAt: new Date().toISOString(),
                 masterProducts,
                 batches,
                 logs,
-                movements
+                movements,
+                ltMasterProducts,
+                ltBatches,
+                ltLogs
               });
             }
             return;
@@ -874,6 +1225,11 @@
           batches = Array.isArray(val.batches) ? val.batches : [];
           logs = Array.isArray(val.logs) ? val.logs : [];
           movements = Array.isArray(val.movements) ? val.movements : [];
+          ltMasterProducts = Array.isArray(val.ltMasterProducts)
+            ? val.ltMasterProducts.map(normalizeLtMasterProduct)
+            : [];
+          ltBatches = Array.isArray(val.ltBatches) ? val.ltBatches : [];
+          ltLogs = Array.isArray(val.ltLogs) ? val.ltLogs : [];
 
           const autoFixed = syncBatchesWithMaster(true);
           saveLocalCache();
@@ -971,6 +1327,13 @@
       });
     }
 
+    function formatDateOnly(isoString) {
+      const d = new Date(isoString);
+      return d.toLocaleDateString('id-ID', {
+        day: '2-digit', month: 'short', year: 'numeric'
+      });
+    }
+
     function getLocalDatetimeInput(dateObj = new Date()) {
       const tzOffset = dateObj.getTimezoneOffset() * 60000;
       return new Date(dateObj - tzOffset).toISOString().slice(0, 16);
@@ -980,6 +1343,20 @@
       const d = new Date(prodIsoString);
       d.setDate(d.getDate() + Number(shelfLifeDays));
       return d.toISOString();
+    }
+
+    // Konversi input date (YYYY-MM-DD) menjadi akhir hari lokal (23:59:59)
+    function dateInputToEndOfDayIso(dateStr) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      return new Date(y, m - 1, d, 23, 59, 59).toISOString();
+    }
+
+    function isoToDateInput(isoString) {
+      const d = new Date(isoString);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
     }
 
     function showToast(message, type = 'success') {
@@ -999,28 +1376,58 @@
     }
 
     // ==========================================
-    // NAVIGASI TAB (OPERASIONAL VS PERGERAKAN)
+    // NAVIGASI TAB (PRODUKSI | JANGKA PANJANG | PERGERAKAN)
     // ==========================================
     function switchTab(tabName) {
+      currentActiveTab = tabName;
       const viewOp = document.getElementById('viewOperasional');
+      const viewLt = document.getElementById('viewLongTerm');
       const viewMov = document.getElementById('viewPergerakan');
+
       const btnOp = document.getElementById('tabBtnOperasional');
+      const btnLt = document.getElementById('tabBtnLongTerm');
       const btnMov = document.getElementById('tabBtnPergerakan');
+
+      const navMasterBtn = document.getElementById('navMasterBtn');
+      const navMasterLabel = document.getElementById('navMasterBtnLabel');
+
+      viewOp.classList.add('hidden');
+      viewLt.classList.add('hidden');
+      viewMov.classList.add('hidden');
+
+      btnOp.className = 'inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition';
+      btnLt.className = 'inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition';
+      btnMov.className = 'inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition';
 
       if (tabName === 'operasional') {
         viewOp.classList.remove('hidden');
-        viewMov.classList.add('hidden');
         btnOp.className = 'inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 transition';
-        btnMov.className = 'inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition';
+        navMasterBtn.className = 'inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition';
+        navMasterLabel.textContent = 'Master Produksi';
+      } else if (tabName === 'longterm') {
+        viewLt.classList.remove('hidden');
+        btnLt.className = 'inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-teal-600 text-teal-700 transition';
+        navMasterBtn.className = 'inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg shadow-sm transition';
+        navMasterLabel.textContent = 'Master Jangka Panjang';
+        renderLongTermTable();
+        renderLtLogs();
       } else {
-        viewOp.classList.add('hidden');
         viewMov.classList.remove('hidden');
         btnMov.className = 'inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-semibold border-b-2 border-indigo-600 text-indigo-600 transition';
-        btnOp.className = 'inline-flex items-center gap-2 px-4 py-2.5 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition';
+        navMasterBtn.className = 'inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition';
+        navMasterLabel.textContent = 'Master Produksi';
         renderAutoRankings();
         renderMovementDetail();
       }
       lucide.createIcons();
+    }
+
+    function openContextualMasterModal() {
+      if (currentActiveTab === 'longterm') {
+        openLtMasterModal();
+      } else {
+        openMasterModal();
+      }
     }
 
     // ==========================================
@@ -1049,6 +1456,29 @@
       return { list: filtered, productMap };
     }
 
+    function getFilteredSortedLtBatches(onlyCurrentView = false) {
+      const productMap = {};
+      ltMasterProducts.forEach(p => { productMap[p.id] = p; });
+
+      const sorted = [...ltBatches].sort((a, b) => new Date(a.expTime) - new Date(b.expTime));
+      if (!onlyCurrentView) return { list: sorted, productMap };
+
+      const search = document.getElementById('ltSearchInput').value.toLowerCase();
+      const filter = document.getElementById('ltStatusFilter').value;
+
+      const filtered = sorted.filter(b => {
+        const prod = productMap[b.productId] || { nama: 'Unknown', kategori: '-' };
+        const st = getLtBatchStatus(b);
+        const matchSearch = prod.nama.toLowerCase().includes(search) || prod.kategori.toLowerCase().includes(search) || b.batchId.toLowerCase().includes(search);
+        if (!matchSearch) return false;
+        if (filter === 'ACTIVE') return b.qtySisa > 0;
+        if (filter === 'ALL') return true;
+        return st.code === filter;
+      });
+
+      return { list: filtered, productMap };
+    }
+
     function exportToExcel(onlyCurrentView = false) {
       if (typeof XLSX === 'undefined') {
         showToast('Library Excel gagal dimuat. Periksa koneksi internet.', 'error');
@@ -1056,7 +1486,9 @@
       }
 
       const { list, productMap } = getFilteredSortedBatches(onlyCurrentView);
-      if (list.length === 0 && masterProducts.length === 0) {
+      const { list: ltList, productMap: ltProdMap } = getFilteredSortedLtBatches(false);
+
+      if (list.length === 0 && masterProducts.length === 0 && ltList.length === 0 && ltMasterProducts.length === 0) {
         showToast('Belum ada data untuk di-export ke Excel.', 'warning');
         return;
       }
@@ -1080,15 +1512,40 @@
       });
 
       const wb = XLSX.utils.book_new();
-      const wsBatch = XLSX.utils.json_to_sheet(batchRows.length > 0 ? batchRows : [{ Info: 'Tidak ada data batch pada filter ini' }]);
+      const wsBatch = XLSX.utils.json_to_sheet(batchRows.length > 0 ? batchRows : [{ Info: 'Tidak ada data batch produksi pada filter ini' }]);
       wsBatch['!cols'] = [
         { wch: 5 }, { wch: 12 }, { wch: 28 }, { wch: 16 },
         { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 20 },
         { wch: 20 }, { wch: 18 }, { wch: 14 }
       ];
-      XLSX.utils.book_append_sheet(wb, wsBatch, 'Monitoring Batch');
+      XLSX.utils.book_append_sheet(wb, wsBatch, 'Monitoring Produksi');
 
       if (!onlyCurrentView) {
+        const ltBatchRows = ltList.map((b, idx) => {
+          const prod = ltProdMap[b.productId] || { nama: 'Unknown', kategori: '-', satuan: '' };
+          const st = getLtBatchStatus(b);
+          return {
+            'No': idx + 1,
+            'ID Batch': b.batchId,
+            'Nama Produk': prod.nama,
+            'Kategori': prod.kategori,
+            'Qty Sisa': b.qtySisa,
+            'Qty Awal': b.qtyAwal,
+            'Satuan': prod.satuan,
+            'Tanggal Input': formatDateOnly(b.inTime),
+            'Tanggal Expired': formatDateOnly(b.expTime),
+            'Sisa Waktu': st.timeText,
+            'Status': st.label
+          };
+        });
+        const wsLt = XLSX.utils.json_to_sheet(ltBatchRows.length > 0 ? ltBatchRows : [{ Info: 'Belum ada stok jangka panjang' }]);
+        wsLt['!cols'] = [
+          { wch: 5 }, { wch: 12 }, { wch: 28 }, { wch: 16 },
+          { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 16 },
+          { wch: 16 }, { wch: 18 }, { wch: 14 }
+        ];
+        XLSX.utils.book_append_sheet(wb, wsLt, 'Barang Jangka Panjang');
+
         const masterRows = masterProducts.map((p, idx) => ({
           'No': idx + 1,
           'ID Produk': p.id,
@@ -1100,37 +1557,68 @@
           'Total Stok Aktif': getAvailableStock(p.id, false),
           'Stok Layak (Non-Exp)': getAvailableStock(p.id, true)
         }));
-        const wsMaster = XLSX.utils.json_to_sheet(masterRows.length > 0 ? masterRows : [{ Info: 'Belum ada master produk' }]);
+        const wsMaster = XLSX.utils.json_to_sheet(masterRows.length > 0 ? masterRows : [{ Info: 'Belum ada master produk produksi' }]);
         wsMaster['!cols'] = [
           { wch: 5 }, { wch: 12 }, { wch: 28 }, { wch: 16 },
           { wch: 10 }, { wch: 18 }, { wch: 22 }, { wch: 16 }, { wch: 20 }
         ];
-        XLSX.utils.book_append_sheet(wb, wsMaster, 'Master Produk');
+        XLSX.utils.book_append_sheet(wb, wsMaster, 'Master Produksi');
 
-        const movRows = movements.map((m, idx) => {
-          const prod = productMap[m.productId] || { nama: 'Unknown', satuan: '' };
-          return {
-            'No': idx + 1,
-            'Waktu': formatDateTime(m.time),
-            'Nama Barang': prod.nama,
-            'Jenis': m.type === 'IN' ? 'Masuk (Produksi)' : (m.type === 'OUT' ? 'Keluar (FEFO)' : 'Koreksi'),
-            'ID Batch': m.batchId,
-            'Qty': m.qty,
-            'Satuan': prod.satuan,
-            'Keterangan': m.note
-          };
-        });
-        if (movRows.length > 0) {
-          const wsMov = XLSX.utils.json_to_sheet(movRows);
-          wsMov['!cols'] = [{ wch: 5 }, { wch: 20 }, { wch: 26 }, { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 40 }];
-          XLSX.utils.book_append_sheet(wb, wsMov, 'Kartu Stok Mutasi');
-        }
+        const ltMasterRows = ltMasterProducts.map((p, idx) => ({
+          'No': idx + 1,
+          'ID Produk': p.id,
+          'Nama Produk': p.nama,
+          'Kategori': p.kategori,
+          'Satuan': p.satuan,
+          'Batas Prioritas (Hari)': getLtPriorityThreshold(p),
+          'Total Stok Aktif': getLtAvailableStock(p.id, false),
+          'Stok Layak (Non-Exp)': getLtAvailableStock(p.id, true)
+        }));
+        const wsLtMaster = XLSX.utils.json_to_sheet(ltMasterRows.length > 0 ? ltMasterRows : [{ Info: 'Belum ada master jangka panjang' }]);
+        wsLtMaster['!cols'] = [
+          { wch: 5 }, { wch: 12 }, { wch: 28 }, { wch: 16 },
+          { wch: 10 }, { wch: 22 }, { wch: 16 }, { wch: 20 }
+        ];
+        XLSX.utils.book_append_sheet(wb, wsLtMaster, 'Master Jangka Panjang');
       }
 
       const dateStr = new Date().toISOString().slice(0, 10);
-      const suffix = onlyCurrentView ? 'tabel-filter' : 'lengkap';
+      const suffix = onlyCurrentView ? 'tabel-produksi' : 'lengkap';
       XLSX.writeFile(wb, `TO-MEET-MONITORING-${suffix}-${dateStr}.xlsx`);
       showToast(`File Excel (.xlsx) ${onlyCurrentView ? 'sesuai filter tabel' : 'laporan lengkap'} berhasil diunduh.`);
+    }
+
+    function exportLongTermExcel() {
+      if (typeof XLSX === 'undefined') return;
+      const { list, productMap } = getFilteredSortedLtBatches(true);
+      const rows = list.map((b, idx) => {
+        const prod = productMap[b.productId] || { nama: 'Unknown', kategori: '-', satuan: '' };
+        const st = getLtBatchStatus(b);
+        return {
+          'No': idx + 1,
+          'ID Batch': b.batchId,
+          'Nama Produk': prod.nama,
+          'Kategori': prod.kategori,
+          'Qty Sisa': b.qtySisa,
+          'Qty Awal': b.qtyAwal,
+          'Satuan': prod.satuan,
+          'Tanggal Input': formatDateOnly(b.inTime),
+          'Tanggal Expired': formatDateOnly(b.expTime),
+          'Sisa Waktu': st.timeText,
+          'Status': st.label
+        };
+      });
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(rows.length > 0 ? rows : [{ Info: 'Tidak ada data pada filter ini' }]);
+      ws['!cols'] = [
+        { wch: 5 }, { wch: 12 }, { wch: 28 }, { wch: 16 },
+        { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 16 },
+        { wch: 16 }, { wch: 18 }, { wch: 14 }
+      ];
+      XLSX.utils.book_append_sheet(wb, ws, 'Barang Jangka Panjang');
+      XLSX.writeFile(wb, `TO-MEET-JANGKA-PANJANG-${new Date().toISOString().slice(0, 10)}.xlsx`);
+      showToast('Tabel Barang Jangka Panjang berhasil di-export ke Excel.');
     }
 
     function exportMovementExcel() {
@@ -1166,7 +1654,10 @@
         masterProducts,
         batches,
         logs,
-        movements
+        movements,
+        ltMasterProducts,
+        ltBatches,
+        ltLogs
       };
       const blob = new Blob([JSON.stringify(backupPayload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -1189,7 +1680,8 @@
           if (!Array.isArray(parsed.masterProducts) || !Array.isArray(parsed.batches)) {
             throw new Error('Format file backup tidak valid.');
           }
-          if (!confirm(`Pulihkan data dari backup (${parsed.masterProducts.length} produk & ${parsed.batches.length} batch)? Data saat ini akan diganti.`)) {
+          const ltCount = Array.isArray(parsed.ltMasterProducts) ? parsed.ltMasterProducts.length : 0;
+          if (!confirm(`Pulihkan data dari backup (${parsed.masterProducts.length} produk produksi & ${ltCount} produk jangka panjang)? Data saat ini akan diganti.`)) {
             event.target.value = '';
             return;
           }
@@ -1197,11 +1689,16 @@
           batches = parsed.batches;
           logs = Array.isArray(parsed.logs) ? parsed.logs : [];
           movements = Array.isArray(parsed.movements) ? parsed.movements : [];
+          ltMasterProducts = Array.isArray(parsed.ltMasterProducts) ? parsed.ltMasterProducts.map(normalizeLtMasterProduct) : [];
+          ltBatches = Array.isArray(parsed.ltBatches) ? parsed.ltBatches : [];
+          ltLogs = Array.isArray(parsed.ltLogs) ? parsed.ltLogs : [];
           syncBatchesWithMaster(true);
           saveData();
           clearSearchSelection('prod');
           clearSearchSelection('out');
           clearSearchSelection('mov');
+          clearSearchSelection('ltIn');
+          clearSearchSelection('ltOut');
           renderAll();
           showToast('Data berhasil dipulihkan dari file backup!');
         } catch (err) {
@@ -1213,7 +1710,7 @@
     }
 
     // ==========================================
-    // MASTER PRODUK (ADD, EDIT, DELETE, SHELF LIFE & PRIORITY THRESHOLD)
+    // MASTER PRODUK PRODUKSI
     // ==========================================
     function openMasterModal() {
       document.getElementById('masterModal').classList.remove('hidden');
@@ -1232,8 +1729,8 @@
       document.getElementById('mEditId').value = '';
       document.getElementById('mShelfLife').value = 7;
       document.getElementById('mPriorityDays').value = '';
-      document.getElementById('masterFormTitle').textContent = 'Tambah Produk Baru (Anti-Duplikasi)';
-      document.getElementById('masterSubmitBtn').textContent = 'Simpan ke Master Produk';
+      document.getElementById('masterFormTitle').textContent = 'Tambah Produk Produksi (Anti-Duplikasi)';
+      document.getElementById('masterSubmitBtn').textContent = 'Simpan ke Master Produksi';
       document.getElementById('cancelEditMasterBtn').classList.add('hidden');
     }
 
@@ -1247,7 +1744,7 @@
       document.getElementById('mShelfLife').value = prod.shelfLifeDays || 7;
       document.getElementById('mPriorityDays').value = prod.priorityDays ? prod.priorityDays : '';
 
-      document.getElementById('masterFormTitle').textContent = 'Edit Produk Master (' + prod.id + ')';
+      document.getElementById('masterFormTitle').textContent = 'Edit Produk Produksi (' + prod.id + ')';
       document.getElementById('masterSubmitBtn').textContent = 'Update Produk';
       document.getElementById('cancelEditMasterBtn').classList.remove('hidden');
     }
@@ -1258,7 +1755,7 @@
       const relatedBatches = batches.filter(b => b.productId === id);
       const warnMsg = relatedBatches.length > 0
         ? `Produk "${prod.nama}" memiliki ${relatedBatches.length} riwayat batch. Hapus produk beserta seluruh data terkait?`
-        : `Hapus produk "${prod.nama}" dari Master Produk?`;
+        : `Hapus produk "${prod.nama}" dari Master Produksi?`;
 
       if (!confirm(warnMsg)) return;
 
@@ -1288,7 +1785,7 @@
 
       const duplicate = masterProducts.some(p => p.nama.toLowerCase() === nama.toLowerCase() && p.id !== editId);
       if (duplicate) {
-        showToast(`Gagal: "${nama}" sudah terdaftar di Master Produk!`, 'error');
+        showToast(`Gagal: "${nama}" sudah terdaftar di Master Produksi!`, 'error');
         return;
       }
 
@@ -1318,11 +1815,7 @@
             document.getElementById('movSearchInput').value = `${nama} (${satuan})`;
           }
 
-          if (updatedBatchCount > 0) {
-            showToast(`Produk "${nama}" & ${updatedBatchCount} batch aktif berhasil diperbarui.`);
-          } else {
-            showToast(`Produk "${nama}" berhasil diperbarui.`);
-          }
+          showToast(`Produk "${nama}" berhasil diperbarui.`);
         }
       } else {
         masterProducts.push({
@@ -1333,7 +1826,7 @@
           shelfLifeDays,
           priorityDays
         });
-        showToast(`Produk "${nama}" berhasil ditambahkan ke Master.`);
+        showToast(`Produk "${nama}" berhasil ditambahkan ke Master Produksi.`);
       }
 
       saveData();
@@ -1359,8 +1852,8 @@
       list.innerHTML = filtered.map(p => {
         const prioDays = getProductPriorityThreshold(p);
         const prioBadge = p.priorityDays
-          ? `<span class="text-amber-700 font-medium">Prioritas: &le; ${prioDays} Hr (Custom)</span>`
-          : `<span class="text-slate-500">Prioritas: &le; ${prioDays} Hr (Default)</span>`;
+          ? `<span class="text-amber-700 font-medium">Prioritas: &lt; ${prioDays} Hr (Custom)</span>`
+          : `<span class="text-slate-500">Prioritas: &lt; ${prioDays} Hr (Default)</span>`;
 
         return `
           <div class="p-3 flex items-center justify-between gap-2 text-sm bg-white hover:bg-slate-50">
@@ -1387,7 +1880,156 @@
     }
 
     // ==========================================
-    // SEARCHABLE DROPDOWN (PROD, OUT, & MOV)
+    // MASTER PRODUK JANGKA PANJANG (TERPISAH)
+    // ==========================================
+    function openLtMasterModal() {
+      document.getElementById('ltMasterModal').classList.remove('hidden');
+      document.getElementById('ltMasterModal').classList.add('flex');
+      resetLtMasterForm();
+      renderLtMasterList();
+    }
+
+    function closeLtMasterModal() {
+      document.getElementById('ltMasterModal').classList.add('hidden');
+      document.getElementById('ltMasterModal').classList.remove('flex');
+    }
+
+    function resetLtMasterForm() {
+      document.getElementById('ltMasterForm').reset();
+      document.getElementById('ltEditId').value = '';
+      document.getElementById('ltPriorityDays').value = '';
+      document.getElementById('ltMasterFormTitle').textContent = 'Tambah Produk Jangka Panjang';
+      document.getElementById('ltMasterSubmitBtn').textContent = 'Simpan ke Master Jangka Panjang';
+      document.getElementById('cancelEditLtMasterBtn').classList.add('hidden');
+    }
+
+    function editLtMasterProduct(id) {
+      const prod = ltMasterProducts.find(p => p.id === id);
+      if (!prod) return;
+      document.getElementById('ltEditId').value = prod.id;
+      document.getElementById('ltNama').value = prod.nama;
+      document.getElementById('ltKategori').value = prod.kategori;
+      document.getElementById('ltSatuan').value = prod.satuan;
+      document.getElementById('ltPriorityDays').value = prod.priorityDays ? prod.priorityDays : '';
+
+      document.getElementById('ltMasterFormTitle').textContent = 'Edit Produk Jangka Panjang (' + prod.id + ')';
+      document.getElementById('ltMasterSubmitBtn').textContent = 'Update Produk';
+      document.getElementById('cancelEditLtMasterBtn').classList.remove('hidden');
+    }
+
+    function deleteLtMasterProduct(id) {
+      const prod = ltMasterProducts.find(p => p.id === id);
+      if (!prod) return;
+      const relatedBatches = ltBatches.filter(b => b.productId === id);
+      const warnMsg = relatedBatches.length > 0
+        ? `Produk "${prod.nama}" memiliki ${relatedBatches.length} stok aktif/riwayat. Hapus produk beserta seluruh stok terkait?`
+        : `Hapus produk "${prod.nama}" dari Master Jangka Panjang?`;
+
+      if (!confirm(warnMsg)) return;
+
+      ltMasterProducts = ltMasterProducts.filter(p => p.id !== id);
+      ltBatches = ltBatches.filter(b => b.productId !== id);
+      saveData();
+
+      if (document.getElementById('ltInSelectId').value === id) clearSearchSelection('ltIn');
+      if (document.getElementById('ltOutSelectId').value === id) clearSearchSelection('ltOut');
+
+      renderLtMasterList();
+      renderAll();
+      showToast(`Produk "${prod.nama}" berhasil dihapus dari Master Jangka Panjang.`, 'warning');
+    }
+
+    function handleSaveLtMaster(e) {
+      e.preventDefault();
+      const editId = document.getElementById('ltEditId').value;
+      const nama = document.getElementById('ltNama').value.trim();
+      const kategori = document.getElementById('ltKategori').value.trim();
+      const satuan = document.getElementById('ltSatuan').value.trim();
+      const rawPriority = parseInt(document.getElementById('ltPriorityDays').value, 10);
+      const priorityDays = (!isNaN(rawPriority) && rawPriority > 0) ? rawPriority : null;
+
+      const duplicate = ltMasterProducts.some(p => p.nama.toLowerCase() === nama.toLowerCase() && p.id !== editId);
+      if (duplicate) {
+        showToast(`Gagal: "${nama}" sudah terdaftar di Master Jangka Panjang!`, 'error');
+        return;
+      }
+
+      if (editId) {
+        const idx = ltMasterProducts.findIndex(p => p.id === editId);
+        if (idx !== -1) {
+          ltMasterProducts[idx] = { ...ltMasterProducts[idx], nama, kategori, satuan, priorityDays };
+
+          if (document.getElementById('ltInSelectId').value === editId) {
+            document.getElementById('ltInSearchInput').value = `${nama} (${satuan})`;
+            updateLtPriorityPreview();
+          }
+          if (document.getElementById('ltOutSelectId').value === editId) {
+            document.getElementById('ltOutSearchInput').value = `${nama} (${satuan})`;
+          }
+
+          showToast(`Produk jangka panjang "${nama}" berhasil diperbarui.`);
+        }
+      } else {
+        ltMasterProducts.push({
+          id: 'LTM-' + Date.now().toString().slice(-4),
+          nama,
+          kategori,
+          satuan,
+          priorityDays
+        });
+        showToast(`Produk "${nama}" berhasil ditambahkan ke Master Jangka Panjang.`);
+      }
+
+      saveData();
+      resetLtMasterForm();
+      renderLtMasterList();
+      renderAll();
+    }
+
+    function renderLtMasterList() {
+      const list = document.getElementById('ltMasterList');
+      const keyword = (document.getElementById('ltMasterSearchBox')?.value || '').toLowerCase();
+      document.getElementById('ltMasterCount').textContent = ltMasterProducts.length;
+
+      const filtered = ltMasterProducts.filter(p =>
+        p.nama.toLowerCase().includes(keyword) || p.kategori.toLowerCase().includes(keyword)
+      );
+
+      if (filtered.length === 0) {
+        list.innerHTML = `<p class="p-4 text-xs text-slate-400 text-center">Belum ada produk jangka panjang yang cocok.</p>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map(p => {
+        const prioDays = getLtPriorityThreshold(p);
+        const prioBadge = p.priorityDays
+          ? `<span class="text-amber-700 font-medium">Prioritas: &lt; ${prioDays} Hr (Custom)</span>`
+          : `<span class="text-teal-700 font-medium">Prioritas: &lt; ${prioDays} Hr (Default)</span>`;
+
+        return `
+          <div class="p-3 flex items-center justify-between gap-2 text-sm bg-white hover:bg-slate-50">
+            <div>
+              <p class="font-medium text-slate-800">${p.nama}</p>
+              <p class="text-xs text-slate-500">
+                ${p.kategori} &bull; Satuan: ${p.satuan} &bull; ${prioBadge}
+              </p>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button type="button" onclick="editLtMasterProduct('${p.id}')" title="Edit Produk" class="p-1.5 text-slate-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+              <button type="button" onclick="deleteLtMasterProduct('${p.id}')" title="Hapus Produk" class="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    // ==========================================
+    // SEARCHABLE DROPDOWN (PROD, OUT, MOV, LTIN, LTOUT)
     // ==========================================
     function openSearchDropdown(type) {
       filterSearchDropdown(type);
@@ -1401,31 +2043,48 @@
       const clearBtn = document.getElementById(`${type}ClearBtn`);
       const keyword = inputEl.value.toLowerCase().trim();
 
+      const isLongTerm = (type === 'ltIn' || type === 'ltOut');
+      const sourceList = isLongTerm ? ltMasterProducts : masterProducts;
+
       hiddenIdEl.value = '';
       if (type === 'prod') updatePreviewExpiry();
       if (type === 'out') updateAvailableHint();
       if (type === 'mov') renderMovementDetail();
+      if (type === 'ltIn') updateLtPriorityPreview();
+      if (type === 'ltOut') updateLtAvailableHint();
 
       clearBtn.classList.toggle('hidden', inputEl.value.length === 0);
 
-      const matches = masterProducts.filter(p =>
+      const matches = sourceList.filter(p =>
         p.nama.toLowerCase().includes(keyword) || p.kategori.toLowerCase().includes(keyword)
       );
 
       if (matches.length === 0) {
-        listEl.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center">Produk tidak ditemukan. Tambahkan di Master Produk.</div>`;
+        const emptyHint = isLongTerm
+          ? 'Produk tidak ditemukan. Tambahkan di Master Jangka Panjang.'
+          : 'Produk tidak ditemukan. Tambahkan di Master Produksi.';
+        listEl.innerHTML = `<div class="p-3 text-xs text-slate-400 text-center">${emptyHint}</div>`;
       } else {
         listEl.innerHTML = matches.map(p => {
-          const stokInfo = (type === 'out' || type === 'mov')
-            ? `<span class="text-xs font-semibold text-indigo-600">Stok: ${getAvailableStock(p.id)} ${p.satuan}</span>`
-            : `<span class="text-[11px] text-slate-400">Exp +${p.shelfLifeDays || 7} hr</span>`;
+          let rightInfo = '';
+          if (type === 'out' || type === 'mov') {
+            rightInfo = `<span class="text-xs font-semibold text-indigo-600">Stok: ${getAvailableStock(p.id)} ${p.satuan}</span>`;
+          } else if (type === 'ltOut') {
+            rightInfo = `<span class="text-xs font-semibold text-teal-600">Stok: ${getLtAvailableStock(p.id)} ${p.satuan}</span>`;
+          } else if (type === 'ltIn') {
+            rightInfo = `<span class="text-[11px] text-slate-400">Prioritas &lt;${getLtPriorityThreshold(p)} hr</span>`;
+          } else {
+            rightInfo = `<span class="text-[11px] text-slate-400">Exp +${p.shelfLifeDays || 7} hr</span>`;
+          }
+
+          const hoverBg = isLongTerm ? 'hover:bg-teal-50' : 'hover:bg-indigo-50';
           return `
-            <button type="button" onclick="selectSearchProduct('${type}', '${p.id}')" class="w-full text-left px-3.5 py-2.5 hover:bg-indigo-50 transition flex items-center justify-between">
+            <button type="button" onclick="selectSearchProduct('${type}', '${p.id}')" class="w-full text-left px-3.5 py-2.5 ${hoverBg} transition flex items-center justify-between">
               <div>
                 <p class="text-sm font-medium text-slate-800">${p.nama}</p>
                 <p class="text-[11px] text-slate-500">${p.kategori} (${p.satuan})</p>
               </div>
-              ${stokInfo}
+              ${rightInfo}
             </button>
           `;
         }).join('');
@@ -1434,7 +2093,9 @@
     }
 
     function selectSearchProduct(type, productId) {
-      const prod = masterProducts.find(p => p.id === productId);
+      const isLongTerm = (type === 'ltIn' || type === 'ltOut');
+      const sourceList = isLongTerm ? ltMasterProducts : masterProducts;
+      const prod = sourceList.find(p => p.id === productId);
       if (!prod) return;
 
       document.getElementById(`${type}SearchInput`).value = `${prod.nama} (${prod.satuan})`;
@@ -1445,6 +2106,8 @@
       if (type === 'prod') updatePreviewExpiry();
       if (type === 'out') updateAvailableHint();
       if (type === 'mov') renderMovementDetail();
+      if (type === 'ltIn') updateLtPriorityPreview();
+      if (type === 'ltOut') updateLtAvailableHint();
     }
 
     function clearSearchSelection(type) {
@@ -1455,10 +2118,12 @@
       if (type === 'prod') updatePreviewExpiry();
       if (type === 'out') updateAvailableHint();
       if (type === 'mov') renderMovementDetail();
+      if (type === 'ltIn') updateLtPriorityPreview();
+      if (type === 'ltOut') updateLtAvailableHint();
     }
 
     document.addEventListener('click', function(e) {
-      ['prod', 'out', 'mov'].forEach(type => {
+      ['prod', 'out', 'mov', 'ltIn', 'ltOut'].forEach(type => {
         const input = document.getElementById(`${type}SearchInput`);
         const list = document.getElementById(`${type}DropdownList`);
         if (input && list && !input.contains(e.target) && !list.contains(e.target)) {
@@ -1626,7 +2291,255 @@
     }
 
     // ==========================================
-    // PENGELUARAN BARANG FEFO + PERINGATAN EXPIRED
+    // INPUT, KOREKSI & PENGELUARAN BARANG JANGKA PANJANG
+    // ==========================================
+    function updateLtPriorityPreview() {
+      const productId = document.getElementById('ltInSelectId').value;
+      const infoEl = document.getElementById('ltPreviewPriorityInfo');
+      if (!productId) {
+        infoEl.textContent = '30 Hari sebelum Expired (Default)';
+        return;
+      }
+      const prod = ltMasterProducts.find(p => p.id === productId);
+      const days = getLtPriorityThreshold(prod);
+      const tag = (prod && prod.priorityDays) ? 'Settingan Produk' : 'Default';
+      infoEl.textContent = `${days} Hari sebelum Expired (${tag})`;
+    }
+
+    function handleInputLongTerm(e) {
+      e.preventDefault();
+      const productId = document.getElementById('ltInSelectId').value;
+      const qty = parseInt(document.getElementById('ltInQty').value, 10);
+      const expDateStr = document.getElementById('ltInExpDate').value;
+
+      if (!productId) {
+        showToast('Pilih nama produk dari daftar Master Jangka Panjang terlebih dahulu!', 'error');
+        return;
+      }
+      if (!expDateStr) {
+        showToast('Masukkan tanggal expired produk!', 'error');
+        return;
+      }
+
+      const prod = ltMasterProducts.find(p => p.id === productId);
+      const nowIso = new Date().toISOString();
+      const expIso = dateInputToEndOfDayIso(expDateStr);
+
+      const newBatch = {
+        batchId: 'LTP-' + Math.floor(1000 + Math.random() * 9000),
+        productId,
+        qtyAwal: qty,
+        qtySisa: qty,
+        inTime: nowIso,
+        expTime: expIso
+      };
+
+      ltBatches.push(newBatch);
+      ltLogs.unshift({
+        time: nowIso,
+        text: `Masuk <strong>+${qty} ${prod.satuan} ${prod.nama}</strong> (${newBatch.batchId}) &bull; Exp: <strong>${formatDateOnly(expIso)}</strong>`
+      });
+
+      saveData();
+      document.getElementById('ltInQty').value = '';
+      document.getElementById('ltInExpDate').value = '';
+      renderAll();
+      showToast(`Stok ${newBatch.batchId} (${prod.nama}) berhasil ditambahkan (+${qty}).`);
+    }
+
+    function openEditLtBatchModal(batchId) {
+      const batch = ltBatches.find(b => b.batchId === batchId);
+      if (!batch) return;
+      const prod = ltMasterProducts.find(p => p.id === batch.productId) || { nama: 'Unknown' };
+
+      document.getElementById('ebLtBatchId').value = batch.batchId;
+      document.getElementById('ebLtTitleId').textContent = batch.batchId;
+      document.getElementById('ebLtProductName').value = prod.nama;
+      document.getElementById('ebLtQtyAwal').value = batch.qtyAwal;
+      document.getElementById('ebLtQtySisa').value = batch.qtySisa;
+      document.getElementById('ebLtExpDate').value = isoToDateInput(batch.expTime);
+
+      document.getElementById('editLtBatchModal').classList.remove('hidden');
+      document.getElementById('editLtBatchModal').classList.add('flex');
+    }
+
+    function closeEditLtBatchModal() {
+      document.getElementById('editLtBatchModal').classList.add('hidden');
+      document.getElementById('editLtBatchModal').classList.remove('flex');
+    }
+
+    function handleSaveEditLtBatch(e) {
+      e.preventDefault();
+      const batchId = document.getElementById('ebLtBatchId').value;
+      const qtyAwal = parseInt(document.getElementById('ebLtQtyAwal').value, 10);
+      const qtySisa = parseInt(document.getElementById('ebLtQtySisa').value, 10);
+      const expDateStr = document.getElementById('ebLtExpDate').value;
+
+      if (qtySisa > qtyAwal) {
+        showToast('Qty Sisa tidak boleh lebih besar dari Qty Awal!', 'error');
+        return;
+      }
+
+      const idx = ltBatches.findIndex(b => b.batchId === batchId);
+      if (idx === -1) return;
+
+      const oldBatch = ltBatches[idx];
+      const prod = ltMasterProducts.find(p => p.id === oldBatch.productId);
+      const newExpIso = dateInputToEndOfDayIso(expDateStr);
+
+      ltBatches[idx] = {
+        ...oldBatch,
+        qtyAwal,
+        qtySisa,
+        expTime: newExpIso
+      };
+
+      ltLogs.unshift({
+        time: new Date().toISOString(),
+        text: `Koreksi batch <strong>${batchId}</strong> (${prod ? prod.nama : ''}) &rarr; Sisa: <strong>${qtySisa}/${qtyAwal}</strong>, Exp: <strong>${formatDateOnly(newExpIso)}</strong>`
+      });
+
+      saveData();
+      closeEditLtBatchModal();
+      renderAll();
+      showToast(`Koreksi batch ${batchId} berhasil disimpan.`);
+    }
+
+    function deleteLtBatch(batchId) {
+      const batch = ltBatches.find(b => b.batchId === batchId);
+      if (!batch) return;
+      const prod = ltMasterProducts.find(p => p.id === batch.productId) || { nama: 'Produk' };
+
+      if (!confirm(`Hapus permanen stok ${batchId} (${prod.nama} - Sisa ${batch.qtySisa})?`)) return;
+
+      ltBatches = ltBatches.filter(b => b.batchId !== batchId);
+      ltLogs.unshift({
+        time: new Date().toISOString(),
+        text: `Hapus batch <strong>${batchId}</strong> (${prod.nama}, sisa ${batch.qtySisa})`
+      });
+
+      saveData();
+      renderAll();
+      showToast(`Batch ${batchId} berhasil dihapus.`, 'warning');
+    }
+
+    function getLtAvailableStock(productId, excludeExpired = false) {
+      const now = new Date();
+      return ltBatches
+        .filter(b => {
+          if (b.productId !== productId || b.qtySisa <= 0) return false;
+          if (excludeExpired && new Date(b.expTime) <= now) return false;
+          return true;
+        })
+        .reduce((sum, b) => sum + b.qtySisa, 0);
+    }
+
+    function updateLtAvailableHint() {
+      const productId = document.getElementById('ltOutSelectId').value;
+      const box = document.getElementById('ltAvailableStockBox');
+      if (!productId) {
+        box.textContent = '0';
+        return;
+      }
+      const product = ltMasterProducts.find(p => p.id === productId);
+      const validStock = getLtAvailableStock(productId, true);
+      const totalStock = getLtAvailableStock(productId, false);
+      const expiredStock = totalStock - validStock;
+
+      if (expiredStock > 0) {
+        box.innerHTML = `${validStock} ${product.satuan} <span class="text-xs font-normal text-rose-600">(+${expiredStock} Exp)</span>`;
+      } else {
+        box.textContent = `${totalStock} ${product ? product.satuan : ''}`;
+      }
+    }
+
+    function handlePengeluaranLongTerm(e) {
+      e.preventDefault();
+      const productId = document.getElementById('ltOutSelectId').value;
+      const qtyToDeduct = parseInt(document.getElementById('ltOutQty').value, 10);
+      const skipExpired = document.getElementById('ltSkipExpiredCheck').checked;
+
+      if (!productId) {
+        showToast('Pilih barang yang keluar dari daftar pencarian!', 'error');
+        return;
+      }
+
+      const product = ltMasterProducts.find(p => p.id === productId);
+      const now = new Date();
+
+      const eligibleBatches = ltBatches
+        .filter(b => {
+          if (b.productId !== productId || b.qtySisa <= 0) return false;
+          if (skipExpired && new Date(b.expTime) <= now) return false;
+          return true;
+        })
+        .sort((a, b) => new Date(a.expTime) - new Date(b.expTime));
+
+      const availableForSelection = eligibleBatches.reduce((sum, b) => sum + b.qtySisa, 0);
+
+      if (qtyToDeduct > availableForSelection) {
+        const totalWithExp = getLtAvailableStock(productId, false);
+        if (skipExpired && qtyToDeduct <= totalWithExp) {
+          showToast(`Stok layak hanya ${availableForSelection} ${product.satuan} (sisanya sudah EXPIRED).`, 'error');
+        } else {
+          showToast(`Stok tidak cukup! Tersedia hanya ${availableForSelection} ${product.satuan}.`, 'error');
+        }
+        return;
+      }
+
+      let remaining = qtyToDeduct;
+      let expiredBatchesInvolved = [];
+
+      for (let batch of eligibleBatches) {
+        if (remaining <= 0) break;
+        const take = Math.min(batch.qtySisa, remaining);
+        remaining -= take;
+        if (new Date(batch.expTime) <= now) {
+          expiredBatchesInvolved.push(`${batch.batchId} (-${take} ${product.satuan}, Exp: ${formatDateOnly(batch.expTime)})`);
+        }
+      }
+
+      if (expiredBatchesInvolved.length > 0) {
+        pendingDeduction = { domain: 'longterm', productId, qtyToDeduct, eligibleBatches };
+        document.getElementById('expiredConfirmMessage').innerHTML =
+          `Anda akan mengeluarkan <strong>${qtyToDeduct} ${product.satuan} ${product.nama}</strong>, namun sistem mendeteksi ada batch yang <strong>SUDAH EXPIRED</strong>:`;
+        document.getElementById('expiredBatchDetails').innerHTML = expiredBatchesInvolved.join('<br>');
+        document.getElementById('expiredConfirmModal').classList.remove('hidden');
+        document.getElementById('expiredConfirmModal').classList.add('flex');
+        return;
+      }
+
+      executeLongTermDeduction(productId, qtyToDeduct, eligibleBatches, false);
+    }
+
+    function executeLongTermDeduction(productId, qtyToDeduct, eligibleBatches, hadExpiredWarning) {
+      const product = ltMasterProducts.find(p => p.id === productId);
+      let breakdown = [];
+      let remaining = qtyToDeduct;
+      const nowIso = new Date().toISOString();
+
+      for (let batch of eligibleBatches) {
+        if (remaining <= 0) break;
+        const take = Math.min(batch.qtySisa, remaining);
+        batch.qtySisa -= take;
+        remaining -= take;
+        breakdown.push(`${batch.batchId} (-${take})`);
+      }
+
+      const tagExp = hadExpiredWarning ? ` <span class="text-rose-600 font-semibold">[Termasuk Batch Expired]</span>` : '';
+      ltLogs.unshift({
+        time: nowIso,
+        text: `Keluar <strong>${qtyToDeduct} ${product.satuan} ${product.nama}</strong>${tagExp} &rarr; Dipotong dari: ${breakdown.join(', ')}`
+      });
+
+      saveData();
+      document.getElementById('ltOutQty').value = '';
+      renderAll();
+      showToast(`Pengeluaran ${qtyToDeduct} ${product.satuan} berhasil diproses.`);
+    }
+
+    // ==========================================
+    // PENGELUARAN BARANG PRODUKSI FEFO + PERINGATAN EXPIRED
     // ==========================================
     function getAvailableStock(productId, excludeExpired = false) {
       const now = new Date();
@@ -1705,7 +2618,7 @@
       }
 
       if (expiredBatchesInvolved.length > 0) {
-        pendingDeduction = { productId, qtyToDeduct, eligibleBatches };
+        pendingDeduction = { domain: 'production', productId, qtyToDeduct, eligibleBatches };
         document.getElementById('expiredConfirmMessage').innerHTML =
           `Anda akan mengeluarkan <strong>${qtyToDeduct} ${product.satuan} ${product.nama}</strong>, namun sistem mendeteksi ada batch yang <strong>SUDAH EXPIRED</strong>:`;
         document.getElementById('expiredBatchDetails').innerHTML = expiredBatchesInvolved.join('<br>');
@@ -1725,9 +2638,13 @@
 
     function confirmForceExpiredDeduction() {
       if (!pendingDeduction) return;
-      const { productId, qtyToDeduct, eligibleBatches } = pendingDeduction;
+      const { domain, productId, qtyToDeduct, eligibleBatches } = pendingDeduction;
       closeExpiredConfirmModal();
-      executeDeduction(productId, qtyToDeduct, eligibleBatches, true);
+      if (domain === 'longterm') {
+        executeLongTermDeduction(productId, qtyToDeduct, eligibleBatches, true);
+      } else {
+        executeDeduction(productId, qtyToDeduct, eligibleBatches, true);
+      }
     }
 
     function executeDeduction(productId, qtyToDeduct, eligibleBatches, hadExpiredWarning) {
@@ -1767,7 +2684,7 @@
     }
 
     // ==========================================
-    // TAB 2: AUTO-RANKING RINGKAS & PERGERAKAN BARANG
+    // TAB PERGERAKAN BARANG (PRODUKSI)
     // ==========================================
     function renderAutoRankings() {
       const fastEl = document.getElementById('rankFastList');
@@ -1892,7 +2809,7 @@
 
       const prioDays = getProductPriorityThreshold(prod);
       document.getElementById('movItemName').textContent = prod.nama;
-      document.getElementById('movItemMeta').textContent = `Kategori: ${prod.kategori} • Satuan: ${prod.satuan} • Masa Simpan: ${prod.shelfLifeDays || 7} Hari • Prioritas: ≤ ${prioDays} Hari`;
+      document.getElementById('movItemMeta').textContent = `Kategori: ${prod.kategori} • Satuan: ${prod.satuan} • Masa Simpan: ${prod.shelfLifeDays || 7} Hari • Prioritas: < ${prioDays} Hari`;
       document.getElementById('movStatIn').textContent = `${totalIn} ${prod.satuan}`;
       document.getElementById('movStatOut').textContent = `${totalOut} ${prod.satuan}`;
       document.getElementById('movStatRatio').textContent = `${ratio}%`;
@@ -1986,15 +2903,15 @@
     }
 
     // ==========================================
-    // EVALUASI STATUS REAL-TIME & RENDER TABEL UTAMA
+    // EVALUASI STATUS REAL-TIME (PRODUKSI & JANGKA PANJANG)
     // ==========================================
-    function getBatchStatus(batch) {
-      if (batch.qtySisa <= 0) {
+    function evaluateExpiryStatus(qtySisa, expTimeIso, priorityThresholdDays) {
+      if (qtySisa <= 0) {
         return { code: 'EMPTY', label: 'Habis', badge: 'bg-slate-100 text-slate-600', rowClass: 'opacity-60', timeText: '-' };
       }
 
       const now = new Date();
-      const exp = new Date(batch.expTime);
+      const exp = new Date(expTimeIso);
       const diffMs = exp - now;
       const diffHours = diffMs / (1000 * 60 * 60);
       const diffDays = diffHours / 24;
@@ -2013,9 +2930,6 @@
       const hoursLeft = Math.floor(diffHours % 24);
       const timeText = daysLeft > 0 ? `${daysLeft} hari ${hoursLeft} jam` : `${hoursLeft} jam lagi`;
 
-      // Menggunakan batas hari prioritas per produk (default 7 hari jika tidak disetting)
-      const priorityThresholdDays = getProductPriorityThreshold(batch.productId);
-
       if (diffDays < priorityThresholdDays) {
         return {
           code: 'WARNING',
@@ -2033,6 +2947,14 @@
         rowClass: '',
         timeText
       };
+    }
+
+    function getBatchStatus(batch) {
+      return evaluateExpiryStatus(batch.qtySisa, batch.expTime, getProductPriorityThreshold(batch.productId));
+    }
+
+    function getLtBatchStatus(batch) {
+      return evaluateExpiryStatus(batch.qtySisa, batch.expTime, getLtPriorityThreshold(batch.productId));
     }
 
     function renderTable() {
@@ -2100,6 +3022,67 @@
       lucide.createIcons();
     }
 
+    function renderLongTermTable() {
+      const tbody = document.getElementById('ltBatchTableBody');
+      let totalStok = 0, countAman = 0, countWarn = 0, countExp = 0;
+
+      ltBatches.forEach(b => {
+        if (b.qtySisa > 0) {
+          totalStok += b.qtySisa;
+          const st = getLtBatchStatus(b);
+          if (st.code === 'SAFE') countAman++;
+          else if (st.code === 'WARNING') countWarn++;
+          else if (st.code === 'EXPIRED') countExp++;
+        }
+      });
+
+      document.getElementById('ltStatTotalStok').textContent = totalStok;
+      document.getElementById('ltStatAman').textContent = countAman;
+      document.getElementById('ltStatWarning').textContent = countWarn;
+      document.getElementById('ltStatExpired').textContent = countExp;
+
+      const { list: filtered, productMap } = getFilteredSortedLtBatches(true);
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-slate-400 text-sm">Belum ada data barang jangka panjang yang sesuai filter.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(b => {
+        const prod = productMap[b.productId] || { nama: 'Unknown', kategori: '-', satuan: '' };
+        const st = getLtBatchStatus(b);
+
+        return `
+          <tr class="hover:bg-slate-50/80 transition ${st.rowClass}">
+            <td class="py-3 px-4 font-mono text-xs font-semibold text-teal-700">${b.batchId}</td>
+            <td class="py-3 px-4 font-medium text-slate-900">${prod.nama}</td>
+            <td class="py-3 px-4 text-slate-500 text-xs">${prod.kategori}</td>
+            <td class="py-3 px-4">
+              <span class="font-bold text-slate-900">${b.qtySisa}</span>
+              <span class="text-xs text-slate-400">/ ${b.qtyAwal} ${prod.satuan}</span>
+            </td>
+            <td class="py-3 px-4 text-xs text-slate-600">${formatDateOnly(b.inTime)}</td>
+            <td class="py-3 px-4 text-xs font-semibold text-slate-800">${formatDateOnly(b.expTime)}</td>
+            <td class="py-3 px-4 text-xs font-medium text-slate-600">${st.timeText}</td>
+            <td class="py-3 px-4">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${st.badge}">
+                ${st.label}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-right whitespace-nowrap">
+              <button onclick="openEditLtBatchModal('${b.batchId}')" title="Koreksi Batch" class="p-1.5 text-slate-400 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition">
+                <i data-lucide="pencil" class="w-4 h-4"></i>
+              </button>
+              <button onclick="deleteLtBatch('${b.batchId}')" title="Hapus Batch" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+      lucide.createIcons();
+    }
+
     function jumpToMovement(productId) {
       switchTab('pergerakan');
       selectSearchProduct('mov', productId);
@@ -2119,6 +3102,20 @@
       `).join('');
     }
 
+    function renderLtLogs() {
+      const container = document.getElementById('ltLogContainer');
+      if (ltLogs.length === 0) {
+        container.innerHTML = `<p class="text-slate-400 italic">Belum ada riwayat aktivitas barang jangka panjang.</p>`;
+        return;
+      }
+      container.innerHTML = ltLogs.map(l => `
+        <div class="flex items-start justify-between gap-2 pb-2 border-b border-slate-100 last:border-0">
+          <span>${l.text}</span>
+          <span class="text-[11px] text-slate-400 shrink-0">${formatDateTime(l.time)}</span>
+        </div>
+      `).join('');
+    }
+
     function setDefaultProdTime() {
       const nowStr = getLocalDatetimeInput();
       document.getElementById('prodTime').value = nowStr;
@@ -2127,22 +3124,30 @@
 
     function renderAll() {
       updateAvailableHint();
+      updateLtAvailableHint();
       renderTable();
+      renderLongTermTable();
       renderLogs();
+      renderLtLogs();
       renderAutoRankings();
       renderMovementDetail();
     }
 
     function clearAllData() {
-      if (!confirm('Hapus semua data master, batch, dan riwayat? Pastikan Anda sudah Export Backup jika diperlukan.')) return;
+      if (!confirm('Hapus semua data (Produksi & Jangka Panjang)? Pastikan Anda sudah Export Backup jika diperlukan.')) return;
       masterProducts = [];
       batches = [];
       logs = [];
       movements = [];
+      ltMasterProducts = [];
+      ltBatches = [];
+      ltLogs = [];
       saveData();
       clearSearchSelection('prod');
       clearSearchSelection('out');
       clearSearchSelection('mov');
+      clearSearchSelection('ltIn');
+      clearSearchSelection('ltOut');
       renderAll();
       showToast('Semua data telah direset.', 'warning');
     }
