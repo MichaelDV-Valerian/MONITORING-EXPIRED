@@ -769,7 +769,6 @@
         firebaseDbRef.on('value', snapshot => {
           const val = snapshot.val();
           if (!val) {
-            // Jika database di Cloud masih kosong dan user punya data lokal, unggah otomatis
             if (uploadLocalIfEmpty && (masterProducts.length > 0 || batches.length > 0)) {
               firebaseDbRef.set({
                 updatedAt: new Date().toISOString(),
@@ -1121,7 +1120,7 @@
     }
 
     // ==========================================
-    // MASTER PRODUK (ADD, EDIT, DELETE, SHELF LIFE)
+    // MASTER PRODUK (ADD, EDIT, DELETE, SHELF LIFE + AUTO UPDATE BATCH)
     // ==========================================
     function openMasterModal() {
       document.getElementById('masterModal').classList.remove('hidden');
@@ -1199,8 +1198,48 @@
       if (editId) {
         const idx = masterProducts.findIndex(p => p.id === editId);
         if (idx !== -1) {
+          const oldShelfLife = masterProducts[idx].shelfLifeDays || 7;
           masterProducts[idx] = { ...masterProducts[idx], nama, kategori, satuan, shelfLifeDays };
-          showToast(`Produk "${nama}" berhasil diperbarui.`);
+
+          // Sinkronisasi otomatis masa expired pada semua batch aktif milik produk ini
+          let updatedBatchCount = 0;
+          if (oldShelfLife !== shelfLifeDays) {
+            batches = batches.map(b => {
+              if (b.productId === editId && b.qtySisa > 0) {
+                updatedBatchCount++;
+                return {
+                  ...b,
+                  expTime: calculateExpiry(b.prodTime, shelfLifeDays)
+                };
+              }
+              return b;
+            });
+
+            if (updatedBatchCount > 0) {
+              logs.unshift({
+                time: new Date().toISOString(),
+                text: `Update masa simpan <strong>${nama}</strong> (${oldShelfLife} &rarr; ${shelfLifeDays} hari) &rarr; <strong>${updatedBatchCount} batch aktif</strong> otomatis diperbarui.`
+              });
+            }
+          }
+
+          // Perbarui label teks di input pencarian jika produk sedang dipilih
+          if (document.getElementById('prodSelectId').value === editId) {
+            document.getElementById('prodSearchInput').value = `${nama} (${satuan})`;
+            updatePreviewExpiry();
+          }
+          if (document.getElementById('outSelectId').value === editId) {
+            document.getElementById('outSearchInput').value = `${nama} (${satuan})`;
+          }
+          if (document.getElementById('movSelectId').value === editId) {
+            document.getElementById('movSearchInput').value = `${nama} (${satuan})`;
+          }
+
+          if (updatedBatchCount > 0) {
+            showToast(`Produk "${nama}" & ${updatedBatchCount} batch aktif berhasil diperbarui ke ${shelfLifeDays} hari.`);
+          } else {
+            showToast(`Produk "${nama}" berhasil diperbarui.`);
+          }
         }
       } else {
         masterProducts.push({
