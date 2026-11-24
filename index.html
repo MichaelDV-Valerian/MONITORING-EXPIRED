@@ -254,6 +254,11 @@
             <option value="EXPIRED">Expired</option>
           </select>
 
+          <button onclick="manualSyncBatchesWithMaster()" title="Hitung ulang semua tanggal expired sesuai Master Produk" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-lg transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span>Sinkronkan Exp</span>
+          </button>
+
           <button onclick="exportToExcel(true)" title="Export baris yang sedang tampil di tabel ini ke Excel" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition">
             <i data-lucide="sheet" class="w-3.5 h-3.5"></i>
             <span>Export Tabel Ini</span>
@@ -654,7 +659,7 @@
     let logs = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOGS)) || [];
     let movements = JSON.parse(localStorage.getItem(STORAGE_KEYS.MOVEMENTS)) || [];
 
-    masterProducts = masterProducts.map(p => ({ ...p, shelfLifeDays: p.shelfLifeDays || 7 }));
+    masterProducts = masterProducts.map(p => ({ ...p, shelfLifeDays: Number(p.shelfLifeDays) || 7 }));
 
     if (movements.length === 0 && batches.length > 0) {
       batches.forEach(b => {
@@ -676,6 +681,47 @@
     let firebaseDbRef = null;
     let isCloudConnected = false;
     let isApplyingRemoteUpdate = false;
+
+    // Fungsi menyelaraskan expTime seluruh batch aktif dengan shelfLifeDays terbaru di Master Produk
+    function syncBatchesWithMaster(silent = true) {
+      if (masterProducts.length === 0 || batches.length === 0) return 0;
+      const masterMap = {};
+      masterProducts.forEach(p => {
+        masterMap[p.id] = Number(p.shelfLifeDays) || 7;
+      });
+
+      let changedCount = 0;
+      batches = batches.map(b => {
+        if (b.qtySisa > 0 && masterMap[b.productId] !== undefined) {
+          const expectedExp = calculateExpiry(b.prodTime, masterMap[b.productId]);
+          if (b.expTime !== expectedExp) {
+            changedCount++;
+            return { ...b, expTime: expectedExp };
+          }
+        }
+        return b;
+      });
+
+      if (changedCount > 0 && !silent) {
+        logs.unshift({
+          time: new Date().toISOString(),
+          text: `Sinkronisasi masa simpan &rarr; <strong>${changedCount} batch aktif</strong> disesuaikan dengan Master Produk.`
+        });
+      }
+      return changedCount;
+    }
+
+    function manualSyncBatchesWithMaster() {
+      const changedCount = syncBatchesWithMaster(false);
+      if (changedCount > 0) {
+        saveData();
+        renderAll();
+        showToast(`${changedCount} batch aktif berhasil diperbarui sesuai Master Produk!`);
+      } else {
+        renderAll();
+        showToast('Semua waktu expired batch sudah sesuai dengan Master Produk.');
+      }
+    }
 
     function saveLocalCache() {
       localStorage.setItem(STORAGE_KEYS.MASTER, JSON.stringify(masterProducts));
@@ -754,7 +800,6 @@
         const db = firebase.database(app);
         firebaseDbRef = db.ref('tomeet_monitoring_data');
 
-        // Monitor status koneksi internet ke Firebase
         db.ref('.info/connected').on('value', snap => {
           if (snap.val() === true) {
             isCloudConnected = true;
@@ -765,11 +810,11 @@
           }
         });
 
-        // Listener Real-time saat data di Cloud berubah (dari PC maupun HP)
         firebaseDbRef.on('value', snapshot => {
           const val = snapshot.val();
           if (!val) {
             if (uploadLocalIfEmpty && (masterProducts.length > 0 || batches.length > 0)) {
+              syncBatchesWithMaster(true);
               firebaseDbRef.set({
                 updatedAt: new Date().toISOString(),
                 masterProducts,
@@ -783,15 +828,21 @@
 
           isApplyingRemoteUpdate = true;
           masterProducts = Array.isArray(val.masterProducts)
-            ? val.masterProducts.map(p => ({ ...p, shelfLifeDays: p.shelfLifeDays || 7 }))
+            ? val.masterProducts.map(p => ({ ...p, shelfLifeDays: Number(p.shelfLifeDays) || 7 }))
             : [];
           batches = Array.isArray(val.batches) ? val.batches : [];
           logs = Array.isArray(val.logs) ? val.logs : [];
           movements = Array.isArray(val.movements) ? val.movements : [];
 
+          // Pastikan semua batch aktif langsung selaras dengan shelfLifeDays terbaru di Master Produk
+          const autoFixed = syncBatchesWithMaster(true);
           saveLocalCache();
           renderAll();
           isApplyingRemoteUpdate = false;
+
+          if (autoFixed > 0 && isCloudConnected) {
+            saveData();
+          }
         }, error => {
           console.error('Firebase listener error:', error);
           isCloudConnected = false;
@@ -1101,10 +1152,11 @@
             event.target.value = '';
             return;
           }
-          masterProducts = parsed.masterProducts.map(p => ({ ...p, shelfLifeDays: p.shelfLifeDays || 7 }));
+          masterProducts = parsed.masterProducts.map(p => ({ ...p, shelfLifeDays: Number(p.shelfLifeDays) || 7 }));
           batches = parsed.batches;
           logs = Array.isArray(parsed.logs) ? parsed.logs : [];
           movements = Array.isArray(parsed.movements) ? parsed.movements : [];
+          syncBatchesWithMaster(true);
           saveData();
           clearSearchSelection('prod');
           clearSearchSelection('out');
@@ -1201,29 +1253,15 @@
           const oldShelfLife = masterProducts[idx].shelfLifeDays || 7;
           masterProducts[idx] = { ...masterProducts[idx], nama, kategori, satuan, shelfLifeDays };
 
-          // Sinkronisasi otomatis masa expired pada semua batch aktif milik produk ini
-          let updatedBatchCount = 0;
-          if (oldShelfLife !== shelfLifeDays) {
-            batches = batches.map(b => {
-              if (b.productId === editId && b.qtySisa > 0) {
-                updatedBatchCount++;
-                return {
-                  ...b,
-                  expTime: calculateExpiry(b.prodTime, shelfLifeDays)
-                };
-              }
-              return b;
-            });
+          const updatedBatchCount = syncBatchesWithMaster(true);
 
-            if (updatedBatchCount > 0) {
-              logs.unshift({
-                time: new Date().toISOString(),
-                text: `Update masa simpan <strong>${nama}</strong> (${oldShelfLife} &rarr; ${shelfLifeDays} hari) &rarr; <strong>${updatedBatchCount} batch aktif</strong> otomatis diperbarui.`
-              });
-            }
+          if (updatedBatchCount > 0) {
+            logs.unshift({
+              time: new Date().toISOString(),
+              text: `Update masa simpan <strong>${nama}</strong> (${oldShelfLife} &rarr; ${shelfLifeDays} hari) &rarr; <strong>${updatedBatchCount} batch aktif</strong> otomatis diperbarui.`
+            });
           }
 
-          // Perbarui label teks di input pencarian jika produk sedang dipilih
           if (document.getElementById('prodSelectId').value === editId) {
             document.getElementById('prodSearchInput').value = `${nama} (${satuan})`;
             updatePreviewExpiry();
@@ -2050,6 +2088,7 @@
 
     // Init
     lucide.createIcons();
+    syncBatchesWithMaster(true);
     setDefaultProdTime();
     renderAll();
     initFirebaseSync(true);
